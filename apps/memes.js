@@ -4,7 +4,7 @@ import path from "node:path";
 import _ from "lodash";
 import { segment } from "oicq"; // 导入segment对象
 
-const baseUrl = "https://memes.ikechan8370.com";
+const baseUrl = "http://112.74.54.196:2233";
 /**
  * 机器人发表情是否引用回复用户
  * @type {boolean}
