@@ -5,7 +5,7 @@ export class example extends plugin {
       name: "capoo",
       dsc: "简单开发示例",
       event: "message",
-      priority: 10086,
+      priority: 9999999999999,
       rule: [
         {
           reg: ".*?(哇|好|你).*",
