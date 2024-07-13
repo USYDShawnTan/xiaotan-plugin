@@ -112,6 +112,11 @@ export const helpList = [
         title: "发疯",
         desc: "发疯/发疯+名字",
       },
+      {
+        icon: 22,
+        title: "TD你死哪去了",
+        desc: "发送td退订",
+      },
     ],
   },
   {
@@ -139,27 +144,27 @@ export const helpList = [
       },
     ],
   },
-  {
-    group: "其他指令&插件帮助",
-    list: [
-      {
-        icon: 78,
-        title: "#小谈版本 #小谈更新日志",
-        desc: "其他命令",
-      },
-    ],
-  },
-  {
-    group: "管理命令，仅管理员可用",
-    auth: "master",
-    list: [
-      {
-        icon: 35,
-        title: "#小谈更新 #小谈强制更新",
-        desc: "更新小谈插件",
-      },
-    ],
-  },
+  // {
+  //   group: "其他指令&插件帮助",
+  //   list: [
+  //     {
+  //       icon: 78,
+  //       title: "#小谈版本 #小谈更新日志",
+  //       desc: "其他命令",
+  //     },
+  //   ],
+  // },
+  // {
+  //   group: "管理命令，仅管理员可用",
+  //   auth: "master",
+  //   list: [
+  //     {
+  //       icon: 35,
+  //       title: "#小谈更新 #小谈强制更新",
+  //       desc: "更新小谈插件",
+  //     },
+  //   ],
+  // },
 ];
 
 export const isSys = true;
