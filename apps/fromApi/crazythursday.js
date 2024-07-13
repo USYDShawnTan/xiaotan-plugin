@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import Apis from "../../model/api.js";
 
 export class crazythursday extends plugin {
   constructor() {
@@ -17,20 +17,10 @@ export class crazythursday extends plugin {
       ],
     });
   }
-
+  
   async crazythursday(e) {
-    // API的URL
-    const url = "https://backend.433200.xyz/crazythursday?type=txt";
-    try {
-      // 从API获取响应
-      const response = await fetch(url);
-      // 解析响应为文本
-      const text = await response.text();
-      // 将文本作为消息回复
-      e.reply(text);
-    } catch (error) {
-      // 错误处理，发送错误消息
-      e.reply("出错啦~稍后再试噢");
-    }
+    await Apis.crazythursday(e);
+    return true;
   }
+
 }

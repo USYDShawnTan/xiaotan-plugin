@@ -1,5 +1,4 @@
-import { getComplaint } from "../resources/data/ffwx.js";
-
+import Apis from "../../model/api.js";
 export class ff extends plugin {
   constructor() {
     super({
@@ -21,13 +20,13 @@ export class ff extends plugin {
   }
 
   async ff1(e) {
-    let Complaint = await getComplaint();
+    let Complaint = await Apis.getComplaint();
     let Name = e.sender.card || e.sender.nickname || e.nickname || e.user_id;
     let msg = Complaint.replace(/{target_name}/g, Name);
     await e.reply(msg);
   }
   async ff2(e) {
-    let Complaint = await getComplaint();
+    let Complaint = await Apis.getComplaint();
     let message = e.msg;
     let Name = message.replace(/^#?发疯/, "").trim();
     let msg = Complaint.replace(/{target_name}/g, Name);
