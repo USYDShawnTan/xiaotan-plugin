@@ -8,7 +8,7 @@ export class example extends plugin {
       priority: 10086,
       rule: [
         {
-          reg: "c",
+          reg: ".*?(哇|好|你).*",
           fnc: "capoo",
         }
       ],

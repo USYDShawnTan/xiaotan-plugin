@@ -7,7 +7,7 @@ class Api {
       const max_images = 267;
       const random_image_number = Math.floor(Math.random() * max_images) + 1;
       const image_url = `${this.Capoo_url}${random_image_number}.gif`;
-      await e.reply(segment.image(image_url), true);
+      await e.reply(segment.image(image_url), false);
       return true;
   }
 }
