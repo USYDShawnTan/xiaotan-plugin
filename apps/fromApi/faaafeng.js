@@ -20,13 +20,13 @@ export class ff extends plugin {
   }
 
   async ff1(e) {
-    let Complaint = await Apis.getComplaint();
+    let Complaint = await Apis.fafeng();
     let Name = e.sender.card || e.sender.nickname || e.nickname || e.user_id;
     let msg = Complaint.replace(/{target_name}/g, Name);
     await e.reply(msg);
   }
   async ff2(e) {
-    let Complaint = await Apis.getComplaint();
+    let Complaint = await Apis.fafeng();
     let message = e.msg;
     let Name = message.replace(/^#?发疯/, "").trim();
     let msg = Complaint.replace(/{target_name}/g, Name);
