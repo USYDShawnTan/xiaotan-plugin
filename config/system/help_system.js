@@ -29,6 +29,11 @@ export const helpList = [
       },
       {
         icon: 22,
+        title: "天命系统（测试中）",
+        desc: "属性 加点 天赋",
+      },
+      {
+        icon: 22,
         title: "今日运势",
         desc: "打卡 今日运势 逆天改命",
       },
@@ -90,7 +95,12 @@ export const helpList = [
       {
         icon: 22,
         title: "新闻",
-        desc: "可以主动推送可以自动推送",
+        desc: "每日60秒新闻",
+      },
+      {
+        icon: 22,
+        title: "热搜",
+        desc: "知乎热搜",
       },
       {
         icon: 22,
@@ -114,6 +124,16 @@ export const helpList = [
       },
       {
         icon: 22,
+        title: "疯狂星期四",
+        desc: "v我50",
+      },
+      {
+        icon: 22,
+        title: "货币转化",
+        desc: "xx汇率",
+      },
+      {
+        icon: 22,
         title: "TD你死哪去了",
         desc: "发送td退订",
       },
@@ -125,7 +145,7 @@ export const helpList = [
       {
         icon: 79,
         title: "随机龙图",
-        desc: "含妈量极高",
+        desc: "攻击性极强()",
       },
       {
         icon: 79,
@@ -135,7 +155,7 @@ export const helpList = [
       {
         icon: 79,
         title: "随机咖波图",
-        desc: "戳一戳触发",
+        desc: "触发条件很随意()",
       },
       {
         icon: 79,

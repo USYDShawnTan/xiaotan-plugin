@@ -103,7 +103,7 @@ export class HoroscopePlugin extends plugin {
         `❤️爱情: ${fortune.fortunetext.love}\n` +
         `💼事业: ${fortune.fortunetext.work}\n` +
         `💰财富: ${fortune.fortunetext.money}\n` +
-        `💪健康: ${fortune.fortunetext.health}\n`;
+        `💪健康: ${fortune.fortunetext.health}`;
 
       forward.push(replyText);
 
