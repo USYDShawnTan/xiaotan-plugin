@@ -20,10 +20,12 @@ export class miao extends plugin {
   }
 
   async miao(e) {
-    await e.reply(await Apis.cat());
+    await Apis.cat(e);
+    return true;
   }
 
   async wang(e) {
-    await e.reply(await Apis.dog());
+    await Apis.dog(e);
+    return true;
   }
 }

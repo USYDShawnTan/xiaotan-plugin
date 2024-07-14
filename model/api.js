@@ -9,19 +9,21 @@ class Api {
     await e.reply(segment.image(image_url), false);
     return true;
   }
-  async cat() {
+  async cat(e) {
     const url = "https://backend.433200.xyz/catdog?type=cat";
     const response = await fetch(url);
     const cat = await response.json();
     const image_url = cat[0].url;
-    return image_url;
+    await e.reply(segment.image(image_url), false);
+    return true;
   }
-  async dog() {
+  async dog(e) {
     const url = "https://backend.433200.xyz/catdog?type=dog";
     const response = await fetch(url);
     const dog = await response.json();
     const image_url = dog[0].url;
-    return image_url;
+    await e.reply(segment.image(image_url), false);
+    return true;
   }
   async crazythursday(e) {
     const url = "https://backend.433200.xyz/crazythursday?type=txt";
