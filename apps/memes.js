@@ -83,24 +83,6 @@ export class memes extends plugin {
       keyMap = JSON.parse(keyMap);
     }
 
-    if (Object.keys(infos).length === 0) {
-      logger.mark("yunzai-meme infos资源本地不存在，正在远程拉取中");
-      let infosRes = await fetch(`${baseUrl}/memes/static/infos.json`);
-      if (infosRes.status === 200) {
-        infos = await infosRes.json();
-        fs.writeFileSync("data/memes/infos.json", JSON.stringify(infos));
-      }
-    }
-
-    if (Object.keys(keyMap).length === 0) {
-      logger.mark("yunzai-meme keyMap资源本地不存在，正在远程拉取中");
-      let keyMapRes = await fetch(`${baseUrl}/memes/static/keyMap.json`);
-      if (keyMapRes.status === 200) {
-        keyMap = await keyMapRes.json();
-        fs.writeFileSync("data/memes/keyMap.json", JSON.stringify(keyMap));
-      }
-    }
-
     if (Object.keys(infos).length === 0 || Object.keys(keyMap).length === 0) {
       let keysRes = await fetch(`${baseUrl}/memes/keys`);
       let keys = await keysRes.json();
