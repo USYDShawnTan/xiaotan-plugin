@@ -1,9 +1,5 @@
-import plugin from "../../../../lib/plugins/plugin.js";
 import Tools from "../../model/tools.js";
-import fsPromises from "fs/promises";
-
-const _path = process.cwd();
-const jrysPath = `${_path}/plugins/xiaotan-plugin/resources/jrys/jrys.json`;
+import Apis from "../../model/api.js";
 
 export class JrysPlugin extends plugin {
   constructor() {
@@ -25,14 +21,6 @@ export class JrysPlugin extends plugin {
     });
   }
 
-  buildFortuneMessage(fortuneData) {
-    return (
-      `\n运势: ${fortuneData.fortuneSummary}` +
-      `\n星级: ${fortuneData.luckyStar}` +
-      `\n签文: ${fortuneData.signText}` +
-      `\n解读: ${fortuneData.unsignText}`
-    );
-  }
   async todayFortune(e) {
     logger.mark(e.user_id);
     const now = await Tools.date_time();
@@ -46,25 +34,24 @@ export class JrysPlugin extends plugin {
       // 如果用户已经有当天的运势,就使用已存储的数据
       if (now === lastFortuneDatetime) {
         replymessage = "今天已经抽过了喵,我去给你找找签:";
-        replymessage += this.buildFortuneMessage(userData.fortune);
+        replymessage += userData.message;
       } else {
         // 否则随机抽取新的运势
-        let jrysData = JSON.parse(await fsPromises.readFile(jrysPath, "utf8"));
-        let newFortune = jrysData[Math.floor(Math.random() * jrysData.length)];
-        userData.fortune = newFortune;
+        let { fortuneData, message } = await Apis.jrys();
+        userData.fortune = fortuneData;
+        userData.message = message;
         userData.time = now;
         await redis.set(`Yunz:JRYS:${e.user_id}`, JSON.stringify(userData));
         replymessage = "让我看看你走的什么运:";
-        replymessage += this.buildFortuneMessage(userData.fortune);
+        replymessage += message;
       }
     } else {
       // 如果用户没有运势记录,则新建一条
-      let jrysData = JSON.parse(await fsPromises.readFile(jrysPath, "utf8"));
-      let newFortune = jrysData[Math.floor(Math.random() * jrysData.length)];
-      let userData = { fortune: newFortune, time: now };
+      let { fortuneData, message } = await Apis.jrys();
+      let userData = { fortune: fortuneData, message: message, time: now };
       await redis.set(`Yunz:JRYS:${e.user_id}`, JSON.stringify(userData));
       replymessage = "让我看看你走的什么运:";
-      replymessage += this.buildFortuneMessage(userData.fortune);
+      replymessage += message;
     }
 
     e.reply(replymessage, false, { at: true });
@@ -89,13 +76,13 @@ export class JrysPlugin extends plugin {
 
     let result = await Tools.consumeCoins(e.user_id, regretCost);
     if (result.success) {
-      let jrysData = JSON.parse(await fsPromises.readFile(jrysPath, "utf8"));
-      let newFortune = jrysData[Math.floor(Math.random() * jrysData.length)];
-      userData.fortune = newFortune; // 更新运势
+      let { fortuneData, message } = await Apis.jrys();
+      userData.fortune = fortuneData; // 更新运势
+      userData.message = message;
 
       await redis.set(`Yunz:JRYS:${e.user_id}`, JSON.stringify(userData));
       let replymessage = `我！命！由！我！不！由！天！\n您消耗了${regretCost}金币！剩余金币数：${result.totalCoins}\n改命结果：`;
-      replymessage += this.buildFortuneMessage(userData.fortune);
+      replymessage += message;
       e.reply(replymessage, false, { at: true });
     } else {
       e.reply(
@@ -108,5 +95,3 @@ export class JrysPlugin extends plugin {
     return true;
   }
 }
-
-export default new JrysPlugin();

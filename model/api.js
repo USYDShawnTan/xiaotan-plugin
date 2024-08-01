@@ -51,6 +51,23 @@ class Api {
     const text = await response.text();
     return text;
   }
+  async jrys() {
+    const url = "https://backend.433200.xyz/jrys?lucky=bad";
+    const response = await fetch(url);
+    const fortuneData = await response.json();
+    const buildFortuneMessage = (fortuneData) => {
+        return (
+          `\n运势: ${fortuneData.fortuneSummary}` +
+          `\n星级: ${fortuneData.luckyStar}` +
+          `\n签文: ${fortuneData.signText}` +
+          `\n解读: ${fortuneData.unsignText}`
+        );
+      };
+    return {
+      fortuneData,
+      message: buildFortuneMessage(fortuneData)
+    };
+  }
 }
 
 export default new Api();
