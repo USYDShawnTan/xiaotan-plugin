@@ -47,33 +47,17 @@ export class memes extends plugin {
         { reg: "^#?(meme(s)?|表情包)更新", fnc: "memesUpdate" },
       ],
     };
-
     Object.keys(keyMap).forEach((key) => {
       let reg = forceSharp ? `^#${key}` : `^#?${key}`;
       option.rule.push({ reg, fnc: "memes" });
     });
-
     super(option);
-
-    // 初始化定时任务
-    function generateCronExpression() {
-      const hour = Math.floor(Math.random() * 3) + 2; // 生成每天的半夜2-4点之间的小时值（随机选择）
-      const minute = Math.floor(Math.random() * 60); // 生成每小时的随机分钟值（0到59之间的随机数）
-      return `${minute} ${hour} * * *`; // 构建 cron 表达式
-    }
-
-    this.task = {
-      cron: generateCronExpression(),
-      name: "memes自动更新任务",
-      fnc: this.init.bind(this),
-    };
   }
 
   async init() {
     mkdirs("data/memes");
     keyMap = {};
     infos = {};
-
     if (fs.existsSync("data/memes/infos.json")) {
       infos = fs.readFileSync("data/memes/infos.json");
       infos = JSON.parse(infos);
@@ -86,7 +70,6 @@ export class memes extends plugin {
     if (Object.keys(infos).length === 0 || Object.keys(keyMap).length === 0) {
       let keysRes = await fetch(`${baseUrl}/memes/keys`);
       let keys = await keysRes.json();
-
       let keyMapTmp = {};
       let infosTmp = {};
       for (const key of keys) {
@@ -102,7 +85,6 @@ export class memes extends plugin {
       fs.writeFileSync("data/memes/keyMap.json", JSON.stringify(keyMap));
       fs.writeFileSync("data/memes/infos.json", JSON.stringify(infos));
     }
-
     let rules = [];
     Object.keys(keyMap).forEach((key) => {
       let reg = forceSharp ? `^#${key}` : `^#?${key}`;
@@ -209,7 +191,6 @@ export class memes extends plugin {
         // 使用 message_id 获取消息
         const replyMsg = await e.group.getMsg(replyMsgId); 
         const reply = replyMsg.message;
-
         if (reply) {
           for (let val of reply) {
             if (val.type === "image") {
