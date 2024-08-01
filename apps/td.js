@@ -10,7 +10,10 @@ export class td extends plugin {
           reg: "td",
           fnc: "td",
         },
-       
+         {
+          reg: "TD",
+          fnc: "td",
+        },
       ],
     });
   }

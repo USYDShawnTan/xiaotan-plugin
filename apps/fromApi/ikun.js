@@ -31,7 +31,7 @@ export class KuntuPlugin extends plugin {
     const image_number = Math.floor(Math.random() * (end - start + 1)) + start;
     const image_url = `${base_url}${batch_choice}/${image_number}${extension}`;
     try {
-      await e.reply(segment.image(image_url), true);
+      await e.reply(segment.image(image_url), false);
       return true;
     } catch (error) {
       console.error("Error sending image:", error);
