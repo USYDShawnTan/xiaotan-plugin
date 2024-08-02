@@ -7,11 +7,7 @@ export class td extends plugin {
       priority: 10086,
       rule: [
         {
-          reg: "td",
-          fnc: "td",
-        },
-        {
-          reg: "TD",
+          reg: ".*?(td|TD).*",
           fnc: "td",
         },
       ],
