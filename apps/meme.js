@@ -2,7 +2,6 @@ import fetch, { Blob, FormData } from "node-fetch";
 import fs from "fs";
 import _ from "lodash";
 import path from "path";
-
 const url = "https://mobiustaylor-meme-generator.hf.space/memes/";
 
 export class memes extends plugin {
@@ -91,8 +90,8 @@ export class memes extends plugin {
   async memesList(e) {
     const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
     if (fs.existsSync(listPath)) {
-      const img = fs.readFileSync(listPath);
-      return e.reply(segment.image(img));
+      const resultBuffer = fs.readFileSync(listPath);
+      return e.reply(segment.image(resultBuffer));
     } else {
       return e.reply("memes列表图片未找到，请更新后再试。");
     }
@@ -117,8 +116,11 @@ export class memes extends plugin {
       templates[Math.floor(Math.random() * templates.length)];
 
     // 获取发送者的信息
-    const info = (await e.member?.getInfo?.()) || (await e.friend?.getInfo?.());
-    const name = info?.card || info?.nickname || "随机文字";
+    const id = e.user_id;
+    const pick =
+      (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
+    const info = (await pick?.getInfo?.()) || pick?.info || pick;
+    const name = info?.card || info?.nickname;
 
     // 准备 FormData
     const formData = new FormData();
@@ -164,14 +166,16 @@ export class memes extends plugin {
 
   async accept(e) {
     await this.initPromise;
+    if (!e.msg) {
+      return false;
+    }
     const match = e.msg.match?.(this.reg)?.[0];
     if (!match) return;
-    const keyword = e.msg.split(" ");
-    keyword[0] = keyword[0].replace(match, "");
-    if (keyword[0] && !/^[-~]+$/.test(keyword[0])) return;
-    const id = keyword[0] || e.at || e.user_id;
+    const remainingText = e.msg.slice(match.length).trim();
+    const params = remainingText ? remainingText.split(/\s+/) : [];
+    const id = e.at || e.user_id;
     const item = this.keywordMap[match];
-    console.log(`触发meme🐱：${item.keywords.join(", ")} --- ${item.key}`);
+    console.log(`🐱触发meme：${item.keywords.join(", ")} --- ${item.key}`);
 
     const pick =
       (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
@@ -215,16 +219,20 @@ export class memes extends plugin {
       formData.append("images", new Blob([buffer]));
     }
 
-    if (item.params.min_texts != 0)
-      for (let i = 0; i < keyword.length - 1; i++)
-        formData.append("texts", keyword[i + 1]);
+    if (item.params.min_texts != 0) {
+      for (const param of params) {
+        formData.append("texts", param);
+      }
+    }
 
     let args;
-    if ((item.params.min_texts == 0) & (keyword[1] != undefined))
-      args = handleArgs(item.key, keyword[1], [
+    if (item.params.min_texts == 0 && params[0] != undefined) {
+      args = handleArgs(item.key, params.join(" "), [
         { text: name, gender: "unknown" },
       ]);
-    else args = handleArgs(item.key, "", [{ text: name, gender: "unknown" }]);
+    } else {
+      args = handleArgs(item.key, "", [{ text: name, gender: "unknown" }]);
+    }
     if (args) formData.set("args", args);
 
     const res = await fetch(`${url}${item.key}/`, {
