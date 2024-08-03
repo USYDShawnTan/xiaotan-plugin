@@ -16,6 +16,7 @@ export class memes extends plugin {
         { reg: "^#?(meme(s)?|表情包)帮助", fnc: "memesHelp" },
         { reg: "^#?随机(meme(s)?|表情包)", fnc: "randomMemes" },
         { reg: "^#?(meme(s)?|表情包)更新", fnc: "memesUpdate" },
+        { reg: "^#?(meme(s)?|表情包)搜索", fnc: "memesSearch" },
       ],
     });
     this.bq = {};
@@ -61,7 +62,7 @@ export class memes extends plugin {
   }
 
   async memesUpdate(e) {
-    e.reply("开始更新meme...");
+    e.reply("开始更新meme...可能要等个一分钟（）");
     console.log("开始更新meme...");
     const response = await fetch(`${url}keys`);
     const keys = await response.json();
@@ -162,6 +163,27 @@ export class memes extends plugin {
     // 返回生成的表情包
     const resultBuffer = Buffer.from(await res.arrayBuffer());
     return e.reply(segment.image(resultBuffer));
+  }
+
+  async memesSearch(e) {
+    let search = e.msg.replace(/^#?(meme(s)?|表情包)搜索/, "").trim();
+    if (!search) {
+      await e.reply("你要搜什么？");
+      return true;
+    }
+
+    let hits = Object.keys(this.keywordMap).filter(
+      (k) => k.indexOf(search) > -1
+    );
+    let result = "搜索结果";
+    if (hits.length > 0) {
+      for (let i = 0; i < hits.length; i++) {
+        result += `\n${i + 1}. ${hits[i]}`;
+      }
+    } else {
+      result += "\n无";
+    }
+    await e.reply(result, e.isGroup);
   }
 
   async accept(e) {
@@ -293,8 +315,8 @@ function handleArgs(key, args, userInfos) {
     case "gun":
     case "bubble_tea": {
       const directionMap = {
-        左: "left",
-        右: "right",
+        左: "right",
+        右: "left",
         两边: "both",
       };
       argsObj = { position: directionMap[args.trim()] || "right" };
