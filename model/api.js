@@ -52,7 +52,7 @@ class Api {
     return text;
   }
   async jrys() {
-    const url = "https://backend.433200.xyz/jrys?lucky=bad";
+    const url = "https://backend.433200.xyz/jrys?lucky=good";
     const response = await fetch(url);
     const fortuneData = await response.json();
     const buildFortuneMessage = (fortuneData) => {
