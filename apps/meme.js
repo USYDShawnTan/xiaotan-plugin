@@ -2,6 +2,7 @@ import fetch, { Blob, FormData } from "node-fetch";
 import fs from "fs";
 import _ from "lodash";
 import path from "path";
+
 const url = "https://mobiustaylor-meme-generator.hf.space/memes/";
 
 export class memes extends plugin {
@@ -62,7 +63,7 @@ export class memes extends plugin {
   }
 
   async memesUpdate(e) {
-    e.reply("开始更新meme...可能要等个一分钟（）");
+    e.reply("开始更新meme...可能要等一分钟（）");
     console.log("开始更新meme...");
     const response = await fetch(`${url}keys`);
     const keys = await response.json();
@@ -104,67 +105,6 @@ export class memes extends plugin {
     );
   }
 
-  async randomMemes(e) {
-    await this.initPromise;
-    // 获取所有需要图片和文本数量小于等于1的表情包模板
-    const templates = Object.values(this.bq).filter(
-      (template) =>
-        template.params.min_images <= 1 && template.params.min_texts <= 1
-    );
-
-    // 随机选择一个模板
-    const randomTemplate =
-      templates[Math.floor(Math.random() * templates.length)];
-
-    // 获取发送者的信息
-    const id = e.user_id;
-    const pick =
-      (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
-    const info = (await pick?.getInfo?.()) || pick?.info || pick;
-    const name = info?.card || info?.nickname;
-
-    // 准备 FormData
-    const formData = new FormData();
-
-    // 如果需要图片，添加默认头像
-    if (randomTemplate.params.min_images > 0) {
-      const avatarUrl =
-        (await e.member?.getAvatarUrl?.()) ||
-        (await e.friend?.getAvatarUrl?.()) ||
-        `http://q2.qlogo.cn/headimg_dl?dst_uin=${e.user_id}&spec=5`;
-      const imgRes = await fetch(avatarUrl);
-      const buffer = Buffer.from(await imgRes.arrayBuffer());
-      formData.append("images", new Blob([buffer]));
-    }
-
-    // 如果需要文字，添加发送者的名字
-    if (randomTemplate.params.min_texts > 0) {
-      formData.append("texts", name);
-    }
-
-    // 返回随机到的 meme 信息
-    e.reply(`随机到的 meme 是：${randomTemplate.keywords.join(", ")}`);
-
-    // 发送请求生成表情包
-    const res = await fetch(`${url}${randomTemplate.key}/`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.status > 299) {
-      const errorText = await res.text();
-      console.error("生成随机表情包失败:", errorText);
-      return e.reply(
-        `生成随机表情包失败，请稍后再试。错误信息：${errorText}`,
-        true
-      );
-    }
-
-    // 返回生成的表情包
-    const resultBuffer = Buffer.from(await res.arrayBuffer());
-    return e.reply(segment.image(resultBuffer));
-  }
-
   async memesSearch(e) {
     let search = e.msg.replace(/^#?(meme(s)?|表情包)搜索/, "").trim();
     if (!search) {
@@ -191,13 +131,29 @@ export class memes extends plugin {
     if (!e.msg) {
       return false;
     }
+
     const match = e.msg.match?.(this.reg)?.[0];
     if (!match) return;
+
     const remainingText = e.msg.slice(match.length).trim();
     const params = remainingText ? remainingText.split(/\s+/) : [];
     const id = e.at || e.user_id;
     const item = this.keywordMap[match];
-    console.log(`🐱触发meme：${item.keywords.join(", ")} --- ${item.key}`);
+    console.log(`触发meme：${item.keywords.join(", ")} --- ${item.key}`);
+
+    // 检查是否请求详情
+    if (remainingText.endsWith("详情") || remainingText.endsWith("帮助")) {
+      let result = `表情包：${match}\n最少图片数：${item.params.min_images}\n最少文字数：${item.params.min_texts}`;
+      if (item.params.args && item.params.args.length > 0) {
+        item.params.args.forEach((arg) => {
+          if (arg.description) {
+            result += `\n参数描述：${arg.description}`;
+          }
+        });
+      }
+      await e.reply(result, e.isGroup);
+      return;
+    }
 
     const pick =
       (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
@@ -263,7 +219,7 @@ export class memes extends plugin {
     });
     if (res.status > 299)
       return e.reply(
-        `该表情至少需要${item.params.min_images}张图片，${item.params.min_texts}个文字描述`,
+        `该表情至少需要${item.params.min_images}张图片，${item.params.min_texts}个文字描述，多个描述记得用空格隔开`,
         true
       );
 
@@ -315,8 +271,8 @@ function handleArgs(key, args, userInfos) {
     case "gun":
     case "bubble_tea": {
       const directionMap = {
-        左: "right",
-        右: "left",
+        左: "left",
+        右: "right",
         两边: "both",
       };
       argsObj = { position: directionMap[args.trim()] || "right" };
