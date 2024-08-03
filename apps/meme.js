@@ -226,6 +226,67 @@ export class memes extends plugin {
     const resultBuffer = Buffer.from(await res.arrayBuffer());
     return e.reply(segment.image(resultBuffer));
   }
+
+  async randomMemes(e) {
+    await this.initPromise;
+    // 获取所有需要图片和文本数量小于等于1的表情包模板
+    const templates = Object.values(this.bq).filter(
+      (template) =>
+        template.params.min_images <= 1 && template.params.min_texts <= 1
+    );
+
+    // 随机选择一个模板
+    const randomTemplate =
+      templates[Math.floor(Math.random() * templates.length)];
+
+    // 获取发送者的信息
+    const id = e.user_id;
+    const pick =
+      (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
+    const info = (await pick?.getInfo?.()) || pick?.info || pick;
+    const name = info?.card || info?.nickname;
+
+    // 准备 FormData
+    const formData = new FormData();
+
+    // 如果需要图片，添加默认头像
+    if (randomTemplate.params.min_images > 0) {
+      const avatarUrl =
+        (await e.member?.getAvatarUrl?.()) ||
+        (await e.friend?.getAvatarUrl?.()) ||
+        `http://q2.qlogo.cn/headimg_dl?dst_uin=${e.user_id}&spec=5`;
+      const imgRes = await fetch(avatarUrl);
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      formData.append("images", new Blob([buffer]));
+    }
+
+    // 如果需要文字，添加发送者的名字
+    if (randomTemplate.params.min_texts > 0) {
+      formData.append("texts", name);
+    }
+
+    // 返回随机到的 meme 信息
+    e.reply(`随机到的 meme 是：${randomTemplate.keywords.join(", ")}`);
+
+    // 发送请求生成表情包
+    const res = await fetch(`${url}${randomTemplate.key}/`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res.status > 299) {
+      const errorText = await res.text();
+      console.error("生成随机表情包失败:", errorText);
+      return e.reply(
+        `生成随机表情包失败，请稍后再试。错误信息：${errorText}`,
+        true
+      );
+    }
+
+    // 返回生成的表情包
+    const resultBuffer = Buffer.from(await res.arrayBuffer());
+    return e.reply(segment.image(resultBuffer));
+  }
 }
 
 function handleArgs(key, args, userInfos) {
