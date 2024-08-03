@@ -26,6 +26,7 @@ export class memes extends plugin {
 
   async init() {
     const infoPath = path.join(process.cwd(), "data/memes/infos.json");
+    const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
 
     try {
       if (fs.existsSync(infoPath)) {
@@ -45,7 +46,19 @@ export class memes extends plugin {
       await this.memesUpdate();
     }
 
+    if (!fs.existsSync(listPath)) {
+      await this.updateMemesListImage();
+    }
+
     this.reg = new RegExp(`^(${Object.keys(this.keywordMap).join("|")})`);
+  }
+
+  async updateMemesListImage() {
+    const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
+    const res = await fetch(`${url}render_list`, { method: "POST" });
+    const resultBuffer = Buffer.from(await res.arrayBuffer());
+    fs.mkdirSync(path.dirname(listPath), { recursive: true });
+    fs.writeFileSync(listPath, resultBuffer);
   }
 
   async memesUpdate(e) {
@@ -68,14 +81,21 @@ export class memes extends plugin {
     const infoPath = path.join(process.cwd(), "data/memes/infos.json");
     fs.mkdirSync(path.dirname(infoPath), { recursive: true });
     fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
+
+    await this.updateMemesListImage();
+
     console.log("meme更新成功");
     e.reply("meme更新成功");
   }
 
   async memesList(e) {
-    const res = await fetch(`${url}render_list`, { method: "POST" });
-    const resultBuffer = Buffer.from(await res.arrayBuffer());
-    return e.reply(segment.image(resultBuffer));
+    const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
+    if (fs.existsSync(listPath)) {
+      const img = fs.readFileSync(listPath);
+      return e.reply(segment.image(img));
+    } else {
+      return e.reply("memes列表图片未找到，请更新后再试。");
+    }
   }
 
   async memesHelp(e) {
