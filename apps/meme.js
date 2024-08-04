@@ -15,7 +15,7 @@ export class memes extends plugin {
       rule: [
         { reg: "^(#)?(meme(s)?|表情包)列表$", fnc: "memesList" },
         { reg: "^#?(meme(s)?|表情包)帮助", fnc: "memesHelp" },
-        { reg: "^#?随机(meme(s)?|表情包)", fnc: "randomMemes" },
+        { reg: "^#?随机(meme(s)?|表情包|mm)", fnc: "randomMemes" },
         { reg: "^#?(meme(s)?|表情包)更新", fnc: "memesUpdate" },
         { reg: "^#?(meme(s)?|表情包)搜索", fnc: "memesSearch" },
       ],
@@ -206,7 +206,7 @@ export class memes extends plugin {
     const atId = e.at;
     const reply = e.getReply ? await e.getReply() : null;
 
-    if (item.params.min_images === 1) {
+    if (item.params.min_images === 1 || item.params.max_images === 1) {
       let imgUrl;
       if (reply) {
         imgUrl = this.extractImageUrlFromMessage(reply.message);
@@ -238,8 +238,13 @@ export class memes extends plugin {
       formData.append("images", new Blob([buffer2]));
     }
 
-    if (item.params.min_texts > 0) {
-      params.forEach((param) => formData.append("texts", param));
+    if (item.params.min_texts === 1 || item.params.max_texts === 1) {
+      if (params.length === 0) {
+        const defaultText = await this.getDefaultText(atId, e);
+        formData.append("texts", defaultText);
+      } else {
+        params.forEach((param) => formData.append("texts", param));
+      }
     }
 
     const pick = atId
@@ -249,6 +254,15 @@ export class memes extends plugin {
     const name = info?.card || info?.nickname;
 
     return { formData, name };
+  }
+
+  async getDefaultText(atId, e) {
+    const pick = atId
+      ? await e.group?.pickMember?.(atId)
+      : (await e.group?.pickMember?.(e.user_id)) ||
+        (await e.bot?.pickFriend?.(e.user_id));
+    const info = (await pick?.getInfo?.()) || pick?.info || pick;
+    return info?.card || info?.nickname || "0.0";
   }
 
   extractImageUrlFromMessage(message) {
