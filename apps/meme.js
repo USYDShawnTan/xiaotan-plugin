@@ -128,80 +128,51 @@ export class memes extends plugin {
 
   async accept(e) {
     await this.initPromise;
-    if (!e.msg) {
-      return false;
-    }
+    if (!e.msg) return false;
 
     const match = e.msg.match?.(this.reg)?.[0];
     if (!match) return;
 
     const remainingText = e.msg.slice(match.length).trim();
     const params = remainingText ? remainingText.split(/\s+/) : [];
-    const id = e.at || e.user_id;
     const item = this.keywordMap[match];
     console.log(`触发meme：${item.keywords.join(", ")} --- ${item.key}`);
 
-    // 检查是否请求详情
     if (remainingText.endsWith("详情") || remainingText.endsWith("帮助")) {
-      let result = `表情包：${match}\n最少图片数：${item.params.min_images}\n最少文字数：${item.params.min_texts}`;
-      if (item.params.args && item.params.args.length > 0) {
-        item.params.args.forEach((arg) => {
-          if (arg.description) {
-            result += `\n参数描述：${arg.description}`;
-          }
-        });
-      }
-      await e.reply(result, e.isGroup);
-      return;
+      return this.sendItemDetails(e, match, item);
     }
 
-    const pick =
-      (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
-    const info = (await pick?.getInfo?.()) || pick?.info || pick;
-    const name = info?.card || info?.nickname;
+    return this.generateMeme(e, item, params);
+  }
 
-    const formData = new FormData();
-    if (item.params.min_images == 2) {
-      const imgUrl =
-        (await e.member?.getAvatarUrl?.()) ||
-        (await e.friend?.getAvatarUrl?.()) ||
-        `http://q2.qlogo.cn/headimg_dl?dst_uin=${e.user_id}&spec=5`;
-      const imgRes = await fetch(imgUrl);
-      const buffer = Buffer.from(await imgRes.arrayBuffer());
-      formData.append("images", new Blob([buffer]));
+  async randomMemes(e) {
+    await this.initPromise;
+    const templates = Object.values(this.bq).filter(
+      (template) =>
+        template.params.min_images <= 1 && template.params.min_texts <= 1
+    );
+    const randomTemplate =
+      templates[Math.floor(Math.random() * templates.length)];
+
+    e.reply(`随机到的 meme 是：${randomTemplate.keywords.join(", ")}`);
+    return this.generateMeme(e, randomTemplate);
+  }
+
+  async sendItemDetails(e, match, item) {
+    let result = `表情包：${match}\n最少图片数：${item.params.min_images}\n最少文字数：${item.params.min_texts}`;
+    if (item.params.args && item.params.args.length > 0) {
+      item.params.args.forEach((arg) => {
+        if (arg.description) {
+          result += `\n参数描述：${arg.description}`;
+        }
+      });
     }
+    await e.reply(result, e.isGroup);
+    return true;
+  }
 
-    if (item.params.min_images != 0) {
-      let reply;
-      if (e.getReply) {
-        reply = await e.getReply();
-      } else if (e.source) {
-        if (e.group?.getChatHistory)
-          reply = (await e.group.getChatHistory(e.source.seq, 1)).pop();
-        else if (e.friend?.getChatHistory)
-          reply = (await e.friend.getChatHistory(e.source.time, 1)).pop();
-      }
-      if (reply?.message)
-        for (const i of reply.message)
-          if (i.type == "image" || i.type == "file") {
-            e.img = [i.url];
-            break;
-          }
-
-      const imgUrl =
-        e.img?.[0] ||
-        (await pick?.getAvatarUrl?.()) ||
-        `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`;
-      const imgRes = await fetch(imgUrl);
-      const buffer = Buffer.from(await imgRes.arrayBuffer());
-      formData.append("images", new Blob([buffer]));
-    }
-
-    if (item.params.min_texts != 0) {
-      for (const param of params) {
-        formData.append("texts", param);
-      }
-    }
+  async generateMeme(e, item, params = []) {
+    const { formData, name } = await this.prepareFormData(e, item, params);
 
     let args;
     if (item.params.min_texts == 0 && params[0] != undefined) {
@@ -217,75 +188,85 @@ export class memes extends plugin {
       method: "POST",
       body: formData,
     });
-    if (res.status > 299)
+
+    if (res.status > 299) {
       return e.reply(
         `该表情至少需要${item.params.min_images}张图片，${item.params.min_texts}个文字描述，多个描述记得用空格隔开`,
         true
       );
+    }
 
     const resultBuffer = Buffer.from(await res.arrayBuffer());
     return e.reply(segment.image(resultBuffer));
   }
 
-  async randomMemes(e) {
-    await this.initPromise;
-    // 获取所有需要图片和文本数量小于等于1的表情包模板
-    const templates = Object.values(this.bq).filter(
-      (template) =>
-        template.params.min_images <= 1 && template.params.min_texts <= 1
-    );
-
-    // 随机选择一个模板
-    const randomTemplate =
-      templates[Math.floor(Math.random() * templates.length)];
-
-    // 获取发送者的信息
+  async prepareFormData(e, item, params) {
+    const formData = new FormData();
     const id = e.user_id;
-    const pick =
-      (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
+    const atId = e.at;
+    const reply = e.getReply ? await e.getReply() : null;
+
+    if (item.params.min_images === 1) {
+      let imgUrl;
+      if (reply) {
+        imgUrl = this.extractImageUrlFromMessage(reply.message);
+      } else if (atId) {
+        imgUrl = await this.getAvatarUrl(atId, e);
+      } else {
+        imgUrl = await this.getAvatarUrl(id, e);
+      }
+      const imgRes = await fetch(imgUrl);
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      formData.append("images", new Blob([buffer]));
+    } else if (item.params.min_images === 2) {
+      let imgUrl1, imgUrl2;
+      if (reply) {
+        imgUrl1 = await this.getAvatarUrl(id, e);
+        imgUrl2 = this.extractImageUrlFromMessage(reply.message);
+      } else if (atId) {
+        imgUrl1 = await this.getAvatarUrl(id, e);
+        imgUrl2 = await this.getAvatarUrl(atId, e);
+      } else {
+        imgUrl1 = await this.getAvatarUrl(id, e);
+        imgUrl2 = `http://q2.qlogo.cn/headimg_dl?dst_uin=123&spec=5`;
+      }
+      const imgRes1 = await fetch(imgUrl1);
+      const imgRes2 = await fetch(imgUrl2);
+      const buffer1 = Buffer.from(await imgRes1.arrayBuffer());
+      const buffer2 = Buffer.from(await imgRes2.arrayBuffer());
+      formData.append("images", new Blob([buffer1]));
+      formData.append("images", new Blob([buffer2]));
+    }
+
+    if (item.params.min_texts > 0) {
+      params.forEach((param) => formData.append("texts", param));
+    }
+
+    const pick = atId
+      ? await e.group?.pickMember?.(atId)
+      : (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
     const info = (await pick?.getInfo?.()) || pick?.info || pick;
     const name = info?.card || info?.nickname;
 
-    // 准备 FormData
-    const formData = new FormData();
+    return { formData, name };
+  }
 
-    // 如果需要图片，添加默认头像
-    if (randomTemplate.params.min_images > 0) {
-      const avatarUrl =
-        (await e.member?.getAvatarUrl?.()) ||
-        (await e.friend?.getAvatarUrl?.()) ||
-        `http://q2.qlogo.cn/headimg_dl?dst_uin=${e.user_id}&spec=5`;
-      const imgRes = await fetch(avatarUrl);
-      const buffer = Buffer.from(await imgRes.arrayBuffer());
-      formData.append("images", new Blob([buffer]));
+  extractImageUrlFromMessage(message) {
+    for (const i of message) {
+      if (i.type === "image" || i.type === "file") {
+        return i.url;
+      }
     }
+    return null;
+  }
 
-    // 如果需要文字，添加发送者的名字
-    if (randomTemplate.params.min_texts > 0) {
-      formData.append("texts", name);
-    }
-
-    // 返回随机到的 meme 信息
-    e.reply(`随机到的 meme 是：${randomTemplate.keywords.join(", ")}`);
-
-    // 发送请求生成表情包
-    const res = await fetch(`${url}${randomTemplate.key}/`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.status > 299) {
-      const errorText = await res.text();
-      console.error("生成随机表情包失败:", errorText);
-      return e.reply(
-        `生成随机表情包失败，请稍后再试。错误信息：${errorText}`,
-        true
-      );
-    }
-
-    // 返回生成的表情包
-    const resultBuffer = Buffer.from(await res.arrayBuffer());
-    return e.reply(segment.image(resultBuffer));
+  async getAvatarUrl(id, e) {
+    const member = await e.group?.pickMember?.(id);
+    return (
+      (await member?.getAvatarUrl?.()) ||
+      (await e.friend?.getAvatarUrl?.()) ||
+      `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`
+    );
   }
 }
 
