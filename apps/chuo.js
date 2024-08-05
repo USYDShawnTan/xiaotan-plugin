@@ -21,6 +21,10 @@ let shyResponses = [
   "哎呀，你真是个坏蛋~",
 ];
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
 export class xnncyc extends plugin {
   constructor() {
     super({
@@ -41,11 +45,11 @@ export class xnncyc extends plugin {
   async X(e) {
     if (e.target_id !== e.self_id) return false;
     logger.mark(
-      `[${logger.green(`${this.e.user_id}`)}] 触发功能 > [${logger.red(
+      `[${logger.green(`${e.user_id}`)}] 触发功能 > [${logger.red(
         "小男娘武器库戳一戳.js"
       )}]`
     );
-    let responseNumber = Math.floor(Math.random() * shyResponses.length);
+    let responseNumber = getRandomInt(shyResponses.length);
     let response = shyResponses[responseNumber];
     await e.reply(response);
     await e.reply(segment.image(`https://api.zhilaohu.icu/xnn`));
