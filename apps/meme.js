@@ -228,7 +228,7 @@ export class memes extends plugin {
         imgUrl2 = await this.getAvatarUrl(atId, e);
       } else {
         imgUrl1 = await this.getAvatarUrl(id, e);
-        imgUrl2 = `http://q2.qlogo.cn/headimg_dl?dst_uin=123&spec=5`;
+        imgUrl2 = `http://q2.qlogo.cn/headimg_dl?dst_uin=1&spec=5`;
       }
       const imgRes1 = await fetch(imgUrl1);
       const imgRes2 = await fetch(imgUrl2);
@@ -327,8 +327,8 @@ function handleArgs(key, args, userInfos) {
     case "gun":
     case "bubble_tea": {
       const directionMap = {
-        左: "left",
-        右: "right",
+        左: "right",
+        右: "left",
         两边: "both",
       };
       argsObj = { position: directionMap[args.trim()] || "right" };

@@ -14,6 +14,14 @@ export class example extends plugin {
           reg: "测试",
           fnc: "cs",
         },
+        {
+          reg: "阿尼亚",
+          fnc: "aniya",
+        },
+        {
+          reg: "迷惑",
+          fnc: "mihuo",
+        },
       ],
     });
   }
@@ -25,5 +33,13 @@ export class example extends plugin {
   async cs() {
     const msg = "测试成功";
     await this.e.reply(msg);
+  }
+  async aniya() {
+    const msg = segment.record("data/阿尼亚.amr");
+    await this.reply(msg);
+  }
+  async mihuo() {
+    const msg = segment.record("data/迷惑.amr");
+    await this.reply(msg);
   }
 }
