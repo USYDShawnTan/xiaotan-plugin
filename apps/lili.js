@@ -1,4 +1,6 @@
 let botname = "茉莉";
+let mo = "(摸|磨|魔|抹|莫|默|沫|墨|膜|么|陌|漠)";
+let li = "(黎|离|狸|李|里|理|利|丽|力|立|沥|哩)";
 
 // 生成图片链接数组的函数
 function generateImageLinks() {
@@ -53,20 +55,19 @@ export class example extends plugin {
       priority: 1000,
       rule: [
         {
-          //无需修改此处reg.
+          // 修改后的正则表达式
           reg: `^#?(在)?(吗|干吗|干嘛|哪|那|哪里|那里|么)?(丫|鸭|呀|呐|呢|喵)?[~～.。,，!！、？]?(茉莉|莉莉)(在)?(吗|干吗|干嘛|哪|那|哪里|那里|么)?(丫|鸭|呀|呐|呢|喵)?[~～.。,，!！、？]?$`,
-          fnc: "huifu",
+          fnc: "normal",
         },
         {
-          // 修正正则表达式，确保只有误拼音的名字触发
-          reg: `^(?!(茉莉|莉莉)$)(磨|魔|茉|莉|丽|力|立|默|莉力|磨力|丽丽|默力|墨莉|莫力|莫丽|莫莉|莫利|沫莉|沫丽).*(磨|魔|茉|莉|丽|力|立|默|莉力|磨力|丽丽|默力|墨莉|莫力|莫丽|莫莉|莫利|沫莉|沫丽)$`,
-          fnc: "jiuzheng",
+          reg: `^(?!(茉莉|莉莉)$)(${mo}${li}|${li}${li})`,
+          fnc: "correct",
         },
       ],
     });
   }
 
-  async huifu() {
+  async normal() {
     let number = Math.floor(Math.random() * responses.length);
     let msg = [responses[number], segment.image(images[number])];
 
@@ -74,7 +75,7 @@ export class example extends plugin {
     return true;
   }
 
-  async jiuzheng(e) {
+  async correct(e) {
     let char = e.msg;
     let charArr = char.split("").join("——");
     let botArr = botname.split("").join("——");

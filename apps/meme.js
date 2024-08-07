@@ -62,8 +62,7 @@ export class memes extends plugin {
     fs.writeFileSync(listPath, resultBuffer);
   }
 
-  async memesUpdate(e) {
-    e.reply("开始更新meme...可能要等一分钟（）");
+  async memesUpdate() {
     console.log("开始更新meme...");
     const response = await fetch(`${url}keys`);
     const keys = await response.json();
@@ -82,11 +81,8 @@ export class memes extends plugin {
     const infoPath = path.join(process.cwd(), "data/memes/infos.json");
     fs.mkdirSync(path.dirname(infoPath), { recursive: true });
     fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
-
     await this.updateMemesListImage();
-
     console.log("meme更新成功");
-    e.reply("meme更新成功");
   }
 
   async memesList(e) {
