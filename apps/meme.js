@@ -62,7 +62,8 @@ export class memes extends plugin {
     fs.writeFileSync(listPath, resultBuffer);
   }
 
-  async memesUpdate() {
+  async memesUpdate(e) {
+    e.reply("开始更新meme...可能要等一分钟（）");
     console.log("开始更新meme...");
     const response = await fetch(`${url}keys`);
     const keys = await response.json();
@@ -81,8 +82,11 @@ export class memes extends plugin {
     const infoPath = path.join(process.cwd(), "data/memes/infos.json");
     fs.mkdirSync(path.dirname(infoPath), { recursive: true });
     fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
+
     await this.updateMemesListImage();
+
     console.log("meme更新成功");
+    e.reply("meme更新成功");
   }
 
   async memesList(e) {
@@ -198,7 +202,7 @@ export class memes extends plugin {
 
   async prepareFormData(e, item, params) {
     const formData = new FormData();
-    const masterQQ = getMasterQQ();
+    const masterQQ = (await import("../../../lib/config/config.js")).default.masterQQ;
     const id = e.user_id;
     const atId = e.at;
     const reply = e.getReply ? await e.getReply() : null;
@@ -287,9 +291,11 @@ export class memes extends plugin {
       `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`
     );
   }
+
+
 }
 
-async function handleArgs(key, args, userInfos) {
+function handleArgs(key, args, userInfos) {
   let argsObj = {};
   switch (key) {
     case "look_flat":
@@ -347,8 +353,4 @@ async function handleArgs(key, args, userInfos) {
     };
   });
   return JSON.stringify(argsObj);
-}
-
-async function getMasterQQ() {
-  return (await import("../../../lib/config/config.js")).default.masterQQ;
 }
