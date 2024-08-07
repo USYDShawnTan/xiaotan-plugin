@@ -31,13 +31,13 @@ let responses = [
   `来了来了，${botname}一直在呢~`,
   `你喊${botname}做什么，${botname}也是很忙的好吧！`,
   `喊${botname}有什么事吗？`,
-  `好啦好啦，${botname}就在这呢.`,
+  `好啦好啦，${botname}就在这呢。`,
   `${botname}一直在等着你呢`,
   `${botname}在哦，有什么吩咐吗?`,
   `你干嘛~哈哈哎呦~`,
   `你好烦丫，${botname}不就在这吗?`,
   `我——！在——！呢——！`,
-  `不用一直喊${botname}啦，${botname}一直在的.`,
+  `不用一直喊${botname}啦，${botname}一直在的。`,
   `想${botname}了吗？真是拿你没办法呢`,
   `baga，喊${botname}干嘛`,
   `哎呀，${botname}在呢，别喊啦~`,
@@ -58,15 +58,15 @@ export class example extends plugin {
           fnc: "huifu",
         },
         {
-          //下方reg里(磨|魔|磨|魔)修改成自己Bot名字的谐音，多个用'|'隔开.
-          reg: `^(?!(茉莉|莉莉)$).*[磨|魔|茉|莉|丽|力|立|默|莉力|磨力|丽丽|默力|墨莉|莫力|莫丽|莫莉|莫利|沫莉|沫丽].*`,
+          // 修正正则表达式，确保只有误拼音的名字触发
+          reg: `^(?!(茉莉|莉莉)$)(磨|魔|茉|莉|丽|力|立|默|莉力|磨力|丽丽|默力|墨莉|莫力|莫丽|莫莉|莫利|沫莉|沫丽).*(磨|魔|茉|莉|丽|力|立|默|莉力|磨力|丽丽|默力|墨莉|莫力|莫丽|莫莉|莫利|沫莉|沫丽)$`,
           fnc: "jiuzheng",
         },
       ],
     });
   }
 
-  async huifu(e) {
+  async huifu() {
     let number = Math.floor(Math.random() * responses.length);
     let msg = [responses[number], segment.image(images[number])];
 

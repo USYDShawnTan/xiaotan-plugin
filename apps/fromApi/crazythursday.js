@@ -9,16 +9,15 @@ export class crazythursday extends plugin {
       priority: 1045,
       rule: [
         {
-          reg: ".*?(星期四|疯狂|肯德基|v我|50).*",
+          reg: ".*?(星期四|疯狂|肯德基|v我50|v我|vivo).*",
           fnc: "crazythursday",
         },
       ],
     });
   }
-  
+
   async crazythursday(e) {
     await Apis.crazythursday(e);
     return true;
   }
-
 }
