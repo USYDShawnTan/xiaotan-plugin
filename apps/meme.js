@@ -198,6 +198,7 @@ export class memes extends plugin {
 
   async prepareFormData(e, item, params) {
     const formData = new FormData();
+    const masterQQ = getMasterQQ();
     const id = e.user_id;
     const atId = e.at;
     const reply = e.getReply ? await e.getReply() : null;
@@ -220,8 +221,16 @@ export class memes extends plugin {
         imgUrl1 = await this.getAvatarUrl(id, e);
         imgUrl2 = this.extractImageUrlFromMessage(reply.message);
       } else if (atId) {
-        imgUrl1 = await this.getAvatarUrl(id, e);
-        imgUrl2 = await this.getAvatarUrl(atId, e);
+        if (
+          (item.key === "do" || item.key === "little_do") &&
+          atId === masterQQ
+        ) {
+          imgUrl1 = await this.getAvatarUrl(atId, e);
+          imgUrl2 = await this.getAvatarUrl(id, e);
+        } else {
+          imgUrl1 = await this.getAvatarUrl(id, e);
+          imgUrl2 = await this.getAvatarUrl(atId, e);
+        }
       } else {
         imgUrl1 = await this.getAvatarUrl(id, e);
         imgUrl2 = `http://q2.qlogo.cn/headimg_dl?dst_uin=1&spec=5`;
@@ -280,7 +289,7 @@ export class memes extends plugin {
   }
 }
 
-function handleArgs(key, args, userInfos) {
+async function handleArgs(key, args, userInfos) {
   let argsObj = {};
   switch (key) {
     case "look_flat":
@@ -338,4 +347,8 @@ function handleArgs(key, args, userInfos) {
     };
   });
   return JSON.stringify(argsObj);
+}
+
+async function getMasterQQ() {
+  return (await import("../../../lib/config/config.js")).default.masterQQ;
 }
