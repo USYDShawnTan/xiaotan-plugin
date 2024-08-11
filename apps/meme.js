@@ -54,14 +54,6 @@ export class memes extends plugin {
     this.reg = new RegExp(`^(${Object.keys(this.keywordMap).join("|")})`);
   }
 
-  async updateMemesListImage() {
-    const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
-    const res = await fetch(`${url}render_list`, { method: "POST" });
-    const resultBuffer = Buffer.from(await res.arrayBuffer());
-    fs.mkdirSync(path.dirname(listPath), { recursive: true });
-    fs.writeFileSync(listPath, resultBuffer);
-  }
-
   async memesUpdate(e) {
     e.reply("开始更新meme...可能要等一分钟（）");
     console.log("开始更新meme...");
@@ -99,6 +91,33 @@ export class memes extends plugin {
     }
   }
 
+  async updateMemesListImage() {
+    const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
+    const res = await fetch(`${url}render_list`, { method: "POST" });
+    const resultBuffer = Buffer.from(await res.arrayBuffer());
+    fs.mkdirSync(path.dirname(listPath), { recursive: true });
+    fs.writeFileSync(listPath, resultBuffer);
+  }
+
+  async accept(e) {
+    await this.initPromise;
+    if (!e.msg) return false;
+
+    const match = e.msg.match?.(this.reg)?.[0];
+    if (!match) return;
+
+    const remainingText = e.msg.slice(match.length).trim();
+    const params = remainingText ? remainingText.split(/\s+/) : [];
+    const item = this.keywordMap[match];
+    console.log(`触发meme：${item.keywords.join(", ")} --- ${item.key}`);
+
+    if (remainingText.endsWith("详情") || remainingText.endsWith("帮助")) {
+      return this.sendItemDetails(e, match, item);
+    }
+
+    return this.generateMeme(e, item, params);
+  }
+
   async memesHelp(e) {
     e.reply(
       "【meme列表】：查看支持的memes列表\n【meme搜索】：搜索表情包关键词\n【meme更新】：远程更新meme列表\n【随机meme】：随机制作一些表情包\n【表情名称】：memes列表中的表情名称，根据提供的文字或图片制作表情包\n【表情名称+详情】：查看该表情所支持的参数"
@@ -124,25 +143,6 @@ export class memes extends plugin {
       result += "\n无";
     }
     await e.reply(result, e.isGroup);
-  }
-
-  async accept(e) {
-    await this.initPromise;
-    if (!e.msg) return false;
-
-    const match = e.msg.match?.(this.reg)?.[0];
-    if (!match) return;
-
-    const remainingText = e.msg.slice(match.length).trim();
-    const params = remainingText ? remainingText.split(/\s+/) : [];
-    const item = this.keywordMap[match];
-    console.log(`触发meme：${item.keywords.join(", ")} --- ${item.key}`);
-
-    if (remainingText.endsWith("详情") || remainingText.endsWith("帮助")) {
-      return this.sendItemDetails(e, match, item);
-    }
-
-    return this.generateMeme(e, item, params);
   }
 
   async randomMemes(e) {
@@ -202,7 +202,8 @@ export class memes extends plugin {
 
   async prepareFormData(e, item, params) {
     const formData = new FormData();
-    const masterQQ = (await import("../../../lib/config/config.js")).default.masterQQ;
+    const masterQQ = (await import("../../../lib/config/config.js")).default
+      .masterQQ;
     const id = e.user_id;
     const atId = e.at;
     const reply = e.getReply ? await e.getReply() : null;
@@ -291,8 +292,6 @@ export class memes extends plugin {
       `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`
     );
   }
-
-
 }
 
 function handleArgs(key, args, userInfos) {

@@ -3,9 +3,9 @@ import plugin from "../../../lib/plugins/plugin.js";
 import cards from "../resources/tarots/tarot.js";
 import common from "../../../lib/common/common.js";
 import { gpt } from "gpti";
+import { Plugin_Path } from "../components/index.js";
 
-const _path = process.cwd();
-const tarotsPath = `${_path}/plugins/xiaotan-plugin/resources/tarots/`;
+const tarotsPath = `${Plugin_Path}/resources/tarots/`;
 
 export class tarot extends plugin {
   constructor() {

@@ -1,3 +1,4 @@
+import { Plugin_Path } from "../components/index.js";
 let shyResponses = [
   "讨厌，别戳人家嘛~",
   "哼，再戳就不理你啦~",
@@ -20,6 +21,7 @@ let shyResponses = [
   "真讨厌，你这样让我怎么好意思~",
   "哎呀，你真是个坏蛋~",
 ];
+const imgPath = `${Plugin_Path}/resources/pic/`;
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
@@ -28,7 +30,7 @@ function getRandomInt(max) {
 export class xnncyc extends plugin {
   constructor() {
     super({
-      name: "小男娘武器库",
+      name: "戳一戳",
       dsc: "戳一戳发送图片",
       event: "notice.group.poke",
       priority: -45,
@@ -44,15 +46,23 @@ export class xnncyc extends plugin {
 
   async X(e) {
     if (e.target_id !== e.self_id) return false;
-    logger.mark(
-      `[${logger.green(`${e.user_id}`)}] 触发功能 > [${logger.red(
-        "小男娘武器库戳一戳.js"
-      )}]`
-    );
+
+    // 生成随机数，范围是 1 到 14
+    let randomGifNumber = getRandomInt(14) + 1;
+
+    // 生成随机回复
     let responseNumber = getRandomInt(shyResponses.length);
     let response = shyResponses[responseNumber];
+
+    // 回复随机文本
     await e.reply(response);
-    await e.reply(segment.image(`https://api.zhilaohu.icu/xnn`));
+
+    // 构建图片路径
+    let imagePath = `${imgPath}${randomGifNumber}.gif`;
+
+    // 回复图片
+    await e.reply(segment.image(imagePath));
+
     return;
   }
 }
