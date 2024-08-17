@@ -66,7 +66,7 @@ export class example extends plugin {
             msglist += `正版验证：无法判断，请查看日志输出\n`;
             logger.error(`正版验证值无法判断，接口返回：${data.eula_blocked}`);
           }
-          msglist += `🌟${data.motd.raw}🌟\n`;
+          msglist += `🌟${data.motd.clean}🌟\n`;
           msglist += `版本：${data.version.name_clean}\n`;
           msglist += `在线玩家：${data.players.online}/${data.players.max}\n`;
           if (data.players.list && data.players.list.length > 0) {
