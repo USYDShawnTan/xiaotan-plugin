@@ -1,9 +1,8 @@
 import fetch, { Blob, FormData } from "node-fetch";
 import fs from "fs";
-import _ from "lodash";
 import path from "path";
 
-const url = "https://mobiustaylor-meme-generator.hf.space/memes/";
+const url = "https://mobiustaylor-meme.hf.space/memes/";
 
 export class memes extends plugin {
   constructor() {
@@ -54,8 +53,7 @@ export class memes extends plugin {
     this.reg = new RegExp(`^(${Object.keys(this.keywordMap).join("|")})`);
   }
 
-  async memesUpdate(e) {
-    e.reply("开始更新meme...可能要等一分钟（）");
+  async memesUpdate() {
     console.log("开始更新meme...");
     const response = await fetch(`${url}keys`);
     const keys = await response.json();
@@ -78,7 +76,6 @@ export class memes extends plugin {
     await this.updateMemesListImage();
 
     console.log("meme更新成功");
-    e.reply("meme更新成功");
   }
 
   async memesList(e) {
@@ -149,7 +146,8 @@ export class memes extends plugin {
     await this.initPromise;
     const templates = Object.values(this.bq).filter(
       (template) =>
-        template.params.min_images <= 1 && template.params.min_texts <= 1
+        template.params_type.min_images <= 1 &&
+        template.params_type.min_texts <= 1
     );
     const randomTemplate =
       templates[Math.floor(Math.random() * templates.length)];
@@ -159,129 +157,120 @@ export class memes extends plugin {
   }
 
   async sendItemDetails(e, match, item) {
-    let result = `表情包：${match}\n最少图片数：${item.params.min_images}\n最少文字数：${item.params.min_texts}`;
-    if (item.params.args && item.params.args.length > 0) {
-      item.params.args.forEach((arg) => {
-        if (arg.description) {
-          result += `\n参数描述：${arg.description}`;
+    let result = `表情包：${match}\n最少图片数：${item.params_type.min_images}\n最少文字数：${item.params_type.min_texts}`;
+    if (
+      item.params_type.args_type &&
+      item.params_type.args_type.args_model &&
+      item.params_type.args_type.args_model.properties
+    ) {
+      Object.values(item.params_type.args_type.args_model.properties).forEach(
+        (arg) => {
+          if (arg.description) {
+            result += `\n参数描述：${arg.description}`;
+          }
         }
-      });
+      );
     }
     await e.reply(result, e.isGroup);
     return true;
   }
 
-  async generateMeme(e, item, params = []) {
-    const { formData, name } = await this.prepareFormData(e, item, params);
-
-    let args;
-    if (item.params.min_texts == 0 && params[0] != undefined) {
-      args = handleArgs(item.key, params.join(" "), [
-        { text: name, gender: "unknown" },
-      ]);
-    } else {
-      args = handleArgs(item.key, "", [{ text: name, gender: "unknown" }]);
-    }
-    if (args) formData.set("args", args);
-
-    const res = await fetch(`${url}${item.key}/`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.status > 299) {
-      return e.reply(
-        `该表情至少需要${item.params.min_images}张图片，${item.params.min_texts}个文字描述，多个描述记得用空格隔开`,
-        true
-      );
-    }
-
-    const resultBuffer = Buffer.from(await res.arrayBuffer());
-    return e.reply(segment.image(resultBuffer));
-  }
-
   async prepareFormData(e, item, params) {
     const formData = new FormData();
-    const masterQQ = (await import("../../../lib/config/config.js")).default
-      .masterQQ;
-    const id = e.user_id;
-    const atId = e.at;
-    const reply = e.getReply ? await e.getReply() : null;
+    const { min_images, max_images, min_texts, max_texts } = item.params_type;
 
-    if (item.params.min_images === 1 || item.params.max_images === 1) {
-      let imgUrl;
-      if (reply) {
-        imgUrl = this.extractImageUrlFromMessage(reply.message);
-      } else if (atId) {
-        imgUrl = await this.getAvatarUrl(atId, e);
-      } else {
-        imgUrl = await this.getAvatarUrl(id, e);
+    // 处理图片参数
+    const images = await this.getImagesFromParams(e, min_images, max_images);
+    images.forEach((img) => {
+      formData.append("images", new Blob([img]));
+    });
+
+    // 处理文字参数
+    const texts = this.getTextParams(e, params, min_texts, max_texts);
+    texts.forEach((text) => {
+      formData.append("texts", text);
+    });
+
+    return formData;
+  }
+
+  async generateMeme(e, item, params = []) {
+    try {
+      const formData = await this.prepareFormData(e, item, params);
+
+      const res = await fetch(`${url}${item.key}/`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.status > 299) {
+        throw new Error(
+          `该表情至少需要${item.params_type.min_images}张图片，${item.params_type.min_texts}个文字描述，多个描述记得用空格隔开`
+        );
       }
+
+      const resultBuffer = Buffer.from(await res.arrayBuffer());
+      return e.reply(segment.image(resultBuffer));
+    } catch (error) {
+      return e.reply(error.message, true);
+    }
+  }
+
+  async getImagesFromParams(e, min_images, max_images) {
+    let images = [];
+
+    // 优先从消息中提取图片或文件链接
+    for (const i of e.message) {
+      if (i.type === "image" || i.type === "file") {
+        const imgRes = await fetch(i.url);
+        const buffer = Buffer.from(await imgRes.arrayBuffer());
+        images.push(buffer);
+      }
+      if (images.length >= max_images) break;
+    }
+
+    // 获取艾特用户的头像
+    if (images.length === 0 && e.message.some((m) => m.type === "at")) {
+      const ats = e.message.filter((m) => m.type === "at");
+      images = ats
+        .map((at) => at.qq)
+        .map(async (qq) => {
+          const imgRes = await fetch(
+            `https://q1.qlogo.cn/g?b=qq&s=160&nk=${qq}`
+          );
+          return Buffer.from(await imgRes.arrayBuffer());
+        });
+    }
+
+    // 使用发送者的头像填充
+    if (images.length < min_images) {
+      const imgUrl = await this.getAvatarUrl(e.user_id, e);
       const imgRes = await fetch(imgUrl);
       const buffer = Buffer.from(await imgRes.arrayBuffer());
-      formData.append("images", new Blob([buffer]));
-    } else if (item.params.min_images === 2) {
-      let imgUrl1, imgUrl2;
-      if (reply) {
-        imgUrl1 = await this.getAvatarUrl(id, e);
-        imgUrl2 = this.extractImageUrlFromMessage(reply.message);
-      } else if (atId) {
-        if (
-          (item.key === "do" || item.key === "little_do") &&
-          atId === masterQQ
-        ) {
-          imgUrl1 = await this.getAvatarUrl(atId, e);
-          imgUrl2 = await this.getAvatarUrl(id, e);
-        } else {
-          imgUrl1 = await this.getAvatarUrl(id, e);
-          imgUrl2 = await this.getAvatarUrl(atId, e);
-        }
-      } else {
-        imgUrl1 = await this.getAvatarUrl(id, e);
-        imgUrl2 = `http://q2.qlogo.cn/headimg_dl?dst_uin=1&spec=5`;
-      }
-      const imgRes1 = await fetch(imgUrl1);
-      const imgRes2 = await fetch(imgUrl2);
-      const buffer1 = Buffer.from(await imgRes1.arrayBuffer());
-      const buffer2 = Buffer.from(await imgRes2.arrayBuffer());
-      formData.append("images", new Blob([buffer1]));
-      formData.append("images", new Blob([buffer2]));
+      images.push(buffer);
     }
 
-    if (item.params.min_texts === 1 || item.params.max_texts === 1) {
-      if (params.length === 0) {
-        const defaultText = await this.getDefaultText(atId, e);
-        formData.append("texts", defaultText);
-      } else {
-        params.forEach((param) => formData.append("texts", param));
-      }
+    // 如果还不够，使用机器人的头像填充
+    if (images.length < min_images) {
+      const imgUrl = await this.getAvatarUrl(e.bot.user_id, e);
+      const imgRes = await fetch(imgUrl);
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      images.push(buffer);
     }
 
-    const pick = atId
-      ? await e.group?.pickMember?.(atId)
-      : (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
-    const info = (await pick?.getInfo?.()) || pick?.info || pick;
-    const name = info?.card || info?.nickname;
-
-    return { formData, name };
+    return images.slice(0, max_images);
   }
 
-  async getDefaultText(atId, e) {
-    const pick = atId
-      ? await e.group?.pickMember?.(atId)
-      : (await e.group?.pickMember?.(e.user_id)) ||
-        (await e.bot?.pickFriend?.(e.user_id));
-    const info = (await pick?.getInfo?.()) || pick?.info || pick;
-    return info?.card || info?.nickname || "0.0";
-  }
+  getTextParams(e, params, min_texts, max_texts) {
+    let texts = params.slice(0, max_texts || 1);
 
-  extractImageUrlFromMessage(message) {
-    for (const i of message) {
-      if (i.type === "image" || i.type === "file") {
-        return i.url;
-      }
+    if (texts.length === 0 && min_texts === 1) {
+      texts = [String(e.user_id)]; // 使用用户ID作为默认文字
+    } else if (texts.length < min_texts) {
+      throw new Error(`该表情至少需要${min_texts}个文字描述`);
     }
-    return null;
+
+    return texts;
   }
 
   async getAvatarUrl(id, e) {
@@ -292,64 +281,4 @@ export class memes extends plugin {
       `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`
     );
   }
-}
-
-function handleArgs(key, args, userInfos) {
-  let argsObj = {};
-  switch (key) {
-    case "look_flat":
-      argsObj = { ratio: parseInt(args) || 2 };
-      break;
-    case "crawl":
-      argsObj = { number: parseInt(args) || _.random(1, 92, false) };
-      break;
-    case "symmetric": {
-      const directionMap = {
-        左: "left",
-        右: "right",
-        上: "top",
-        下: "bottom",
-      };
-      argsObj = { direction: directionMap[args.trim()] || "left" };
-      break;
-    }
-    case "petpet":
-    case "jiji_king":
-    case "kirby_hammer":
-      argsObj = { circle: args.startsWith("圆") };
-      break;
-    case "my_friend":
-      if (!args) args = _.trim(userInfos[0].text, "@");
-      argsObj = { name: args };
-      break;
-    case "looklook":
-      argsObj = { mirror: args === "翻转" };
-      break;
-    case "always": {
-      const modeMap = {
-        "": "normal",
-        循环: "loop",
-        套娃: "circle",
-      };
-      argsObj = { mode: modeMap[args] || "normal" };
-      break;
-    }
-    case "gun":
-    case "bubble_tea": {
-      const directionMap = {
-        左: "right",
-        右: "left",
-        两边: "both",
-      };
-      argsObj = { position: directionMap[args.trim()] || "right" };
-      break;
-    }
-  }
-  argsObj.user_infos = userInfos.map((u) => {
-    return {
-      name: _.trim(u.text, "@"),
-      gender: u.gender,
-    };
-  });
-  return JSON.stringify(argsObj);
 }

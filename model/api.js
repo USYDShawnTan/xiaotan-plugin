@@ -52,20 +52,20 @@ class Api {
     return text;
   }
   async jrys() {
-    const url = "https://backend.433200.xyz/jrys?lucky=good";
+    const url = "https://backend.433200.xyz/jrys";
     const response = await fetch(url);
     const fortuneData = await response.json();
     const buildFortuneMessage = (fortuneData) => {
-        return (
-          `\n运势: ${fortuneData.fortuneSummary}` +
-          `\n星级: ${fortuneData.luckyStar}` +
-          `\n签文: ${fortuneData.signText}` +
-          `\n解读: ${fortuneData.unsignText}`
-        );
-      };
+      return (
+        `\n运势: ${fortuneData.fortuneSummary}` +
+        `\n星级: ${fortuneData.luckyStar}` +
+        `\n签文: ${fortuneData.signText}` +
+        `\n解读: ${fortuneData.unsignText}`
+      );
+    };
     return {
       fortuneData,
-      message: buildFortuneMessage(fortuneData)
+      message: buildFortuneMessage(fortuneData),
     };
   }
 }
