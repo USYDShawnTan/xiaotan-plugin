@@ -62,6 +62,7 @@ export class xnncyc extends plugin {
 
     // 回复图片
     await e.reply(segment.image(imagePath));
+    await e.reply(segment.record("data/ngm.mp3"));
 
     return;
   }
