@@ -13,9 +13,10 @@ export class td extends plugin {
       ],
     });
   }
-  async td() {
-    await this.reply(segment.at('2559698787'))
-    await this.reply(segment.at('2559698787'))
-    await this.reply(segment.at('2559698787'))
+  async td(e) {
+    await this.reply(segment.at("2559698787"));
+    await this.reply(segment.at("2559698787"));
+    await this.reply(segment.at("2559698787"));
+    await e.reply(segment.image("data/td.jpg"));
   }
 }
