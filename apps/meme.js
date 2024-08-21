@@ -353,13 +353,12 @@ function handleArgs(key, args, userInfos) {
     case "looklook":
       argsObj = { mirror: args === "翻转" };
       break;
-
     case "gun":
     case "bubble_tea": {
       const directionMap = {
         左: "right",
         右: "left",
-        两边: "both",
+        双手: "both",
       };
       argsObj = { position: directionMap[args.trim()] || "right" };
       break;
