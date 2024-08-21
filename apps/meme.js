@@ -160,10 +160,20 @@ export class memes extends plugin {
   }
 
   async sendItemDetails(e, match, item) {
-    let result = `表情包：${match}\n最少图片数：${item.params_type.min_images}\n最少文字数：${item.params_type.min_texts}`;
-    if (item.params_type.args_type) {
-      result += `\n支持的参数：${JSON.stringify(item.params_type.args_type)}`;
+    let result = `表情包：${match}\n最少图片数：${item.params_type.min_images}\n最大图片数：${item.params_type.max_images}\n最少文字数：${item.params_type.min_texts}\n最大文字数：${item.params_type.max_texts}`;
+
+    if (
+      item.params_type.args_type &&
+      item.params_type.args_type.parser_options
+    ) {
+      result += "\n支持的参数：";
+      item.params_type.args_type.parser_options.forEach((option) => {
+        const names = option.names.join(", ");
+        const helpText = option.help_text || "无具体描述";
+        result += `\n参数：${names}\n描述：${helpText}`;
+      });
     }
+
     await e.reply(result, e.isGroup);
     return true;
   }
@@ -305,19 +315,61 @@ export class memes extends plugin {
 function handleArgs(key, args, userInfos) {
   let argsObj = {};
   switch (key) {
-    case "always":
-      argsObj = {
-        user_infos: userInfos.map((u) => ({
-          name: _.trim(u.text, "@"),
-          gender: u.gender,
-        })),
-        mode: args || "normal", // 处理 mode 参数，默认是 normal
+    case "always": {
+      const modeMap = {
+        "": "normal",
+        循环: "loop",
+        套娃: "circle",
       };
+      argsObj = { mode: modeMap[args] || "normal" };
       break;
-    // 这里可以根据不同的 key 来添加更多的处理逻辑
-    // case "other_key":
-    //    // 处理其他key
-    //    break;
+    }
+
+    case "look_flat":
+      argsObj = { ratio: parseInt(args) || 2 };
+      break;
+    case "crawl":
+      argsObj = { number: parseInt(args) || _.random(1, 92, false) };
+      break;
+    case "symmetric": {
+      const directionMap = {
+        左: "left",
+        右: "right",
+        上: "top",
+        下: "bottom",
+      };
+      argsObj = { direction: directionMap[args.trim()] || "left" };
+      break;
+    }
+    case "petpet":
+    case "jiji_king":
+    case "kirby_hammer":
+      argsObj = { circle: args.startsWith("圆") };
+      break;
+    case "my_friend":
+      if (!args) args = _.trim(userInfos[0].text, "@");
+      argsObj = { name: args };
+      break;
+    case "looklook":
+      argsObj = { mirror: args === "翻转" };
+      break;
+
+    case "gun":
+    case "bubble_tea": {
+      const directionMap = {
+        左: "right",
+        右: "left",
+        两边: "both",
+      };
+      argsObj = { position: directionMap[args.trim()] || "right" };
+      break;
+    }
   }
+  argsObj.user_infos = userInfos.map((u) => {
+    return {
+      name: _.trim(u.text, "@"),
+      gender: u.gender,
+    };
+  });
   return JSON.stringify(argsObj);
 }
