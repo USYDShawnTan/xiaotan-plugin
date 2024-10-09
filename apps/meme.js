@@ -1,7 +1,11 @@
 import fetch, { Blob, FormData } from "node-fetch";
 import fs from "fs";
-import _ from "lodash";
 import path from "path";
+
+// 如果全局没有定义 segment，则从 oicq 导入
+if (!global.segment) {
+  global.segment = (await import("oicq")).segment;
+}
 
 const url = "https://mobiustaylor-meme.hf.space/memes/";
 
@@ -20,8 +24,10 @@ export class memes extends plugin {
         { reg: "^#?(meme(s)?|表情包)搜索", fnc: "memesSearch" },
       ],
     });
-    this.bq = {};
+
     this.keywordMap = {};
+    this.avatarCache = {};
+    this.initialized = false;
     this.initPromise = this.init();
   }
 
@@ -35,7 +41,6 @@ export class memes extends plugin {
         const infos = JSON.parse(data);
         for (const v of Object.values(infos)) {
           for (const keyword of v.keywords) {
-            this.bq[keyword] = v;
             this.keywordMap[keyword] = v;
           }
         }
@@ -43,7 +48,7 @@ export class memes extends plugin {
         await this.memesUpdate();
       }
     } catch (error) {
-      console.error("meme初始化失败", error);
+      console.error("meme 初始化失败", error);
       await this.memesUpdate();
     }
 
@@ -51,42 +56,54 @@ export class memes extends plugin {
       await this.updateMemesListImage();
     }
 
-    this.reg = new RegExp(`^(${Object.keys(this.keywordMap).join("|")})`);
+    const escapedKeywords = Object.keys(this.keywordMap).map((k) =>
+      k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    );
+    this.reg = new RegExp(`^(${escapedKeywords.join("|")})`);
+
+    this.initialized = true;
   }
 
   async memesUpdate() {
-    console.log("开始更新meme...");
-    const response = await fetch(`${url}keys`);
-    const keys = await response.json();
-    const infoPromises = keys.map(async (key) => {
-      const infoResponse = await fetch(`${url}${key}/info`);
-      const info = await infoResponse.json();
-      return { key, info };
-    });
-    const infosArray = await Promise.all(infoPromises);
-    const infos = {};
-    for (const { key, info } of infosArray) {
-      infos[key] = info;
-      for (const keyword of info.keywords) {
-        this.bq[keyword] = info;
-        this.keywordMap[keyword] = info;
+    try {
+      console.log("开始更新 meme...");
+      const response = await fetch(`${url}keys`);
+      const keys = await response.json();
+
+      const infoPromises = keys.map(async (key) => {
+        const infoResponse = await fetch(`${url}${key}/info`);
+        const info = await infoResponse.json();
+        return { key, info };
+      });
+
+      const infosArray = await Promise.all(infoPromises);
+      const infos = {};
+      for (const { key, info } of infosArray) {
+        infos[key] = info;
+        for (const keyword of info.keywords) {
+          this.keywordMap[keyword] = info;
+        }
       }
+
+      const infoPath = path.join(process.cwd(), "data/memes/infos.json");
+      fs.mkdirSync(path.dirname(infoPath), { recursive: true });
+      fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
+      await this.updateMemesListImage();
+      console.log("meme 更新成功");
+    } catch (error) {
+      console.error("meme 更新失败", error);
+      throw error;
     }
-    const infoPath = path.join(process.cwd(), "data/memes/infos.json");
-    fs.mkdirSync(path.dirname(infoPath), { recursive: true });
-    fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
-    await this.updateMemesListImage();
-    console.log("meme更新成功");
   }
-  // 新增handleMemesUpdate方法，用于处理用户触发的更新事件
+
   async handleMemesUpdate(e) {
     try {
-      e.reply("开始更新meme...");
-      await this.memesUpdate(); // 调用更新方法
-      e.reply("meme更新成功");
+      e.reply("开始更新 meme...");
+      await this.memesUpdate();
+      e.reply("meme 更新成功");
     } catch (error) {
-      console.error("meme更新失败", error);
-      e.reply("meme更新失败，请稍后再试。");
+      console.error("meme 更新失败", error);
+      e.reply("meme 更新失败，请稍后再试。");
     }
   }
 
@@ -96,7 +113,7 @@ export class memes extends plugin {
       const resultBuffer = fs.readFileSync(listPath);
       return e.reply(segment.image(resultBuffer));
     } else {
-      return e.reply("memes列表图片未找到，请更新后再试。");
+      return e.reply("memes 列表图片未找到，请更新后再试。");
     }
   }
 
@@ -109,7 +126,9 @@ export class memes extends plugin {
   }
 
   async accept(e) {
-    await this.initPromise;
+    if (!this.initialized) {
+      await this.initPromise;
+    }
     if (!e.msg) return false;
 
     const match = e.msg.match?.(this.reg)?.[0];
@@ -118,7 +137,12 @@ export class memes extends plugin {
     const remainingText = e.msg.slice(match.length).trim();
     const params = remainingText ? remainingText.split(/\s+/) : [];
     const item = this.keywordMap[match];
-    console.log(`触发meme：${item.keywords.join(", ")} --- ${item.key}`);
+
+    if (!item) {
+      return e.reply("未找到对应的表情包，请检查名称是否正确。");
+    }
+
+    console.log(`触发 meme：${item.keywords.join(", ")} --- ${item.key}`);
 
     if (remainingText.endsWith("详情") || remainingText.endsWith("帮助")) {
       return this.sendItemDetails(e, match, item);
@@ -129,7 +153,12 @@ export class memes extends plugin {
 
   async memesHelp(e) {
     e.reply(
-      "【meme列表】：查看支持的memes列表\n【meme搜索】：搜索表情包关键词\n【meme更新】：远程更新meme列表\n【随机meme】：随机制作一些表情包\n【表情名称】：memes列表中的表情名称，根据提供的文字或图片制作表情包\n【表情名称+详情】：查看该表情所支持的参数"
+      "【meme 列表】：查看支持的 memes 列表\n" +
+        "【meme 搜索】：搜索表情包关键词\n" +
+        "【meme 更新】：远程更新 meme 列表\n" +
+        "【随机 meme】：随机制作一些表情包\n" +
+        "【表情名称】：memes 列表中的表情名称，根据提供的文字或图片制作表情包\n" +
+        "【表情名称+详情】：查看该表情所支持的参数"
     );
   }
 
@@ -140,9 +169,7 @@ export class memes extends plugin {
       return true;
     }
 
-    let hits = Object.keys(this.keywordMap).filter(
-      (k) => k.indexOf(search) > -1
-    );
+    let hits = Object.keys(this.keywordMap).filter((k) => k.includes(search));
     let result = "搜索结果";
     if (hits.length > 0) {
       for (let i = 0; i < hits.length; i++) {
@@ -155,8 +182,10 @@ export class memes extends plugin {
   }
 
   async randomMemes(e) {
-    await this.initPromise;
-    const templates = Object.values(this.bq).filter(
+    if (!this.initialized) {
+      await this.initPromise;
+    }
+    const templates = Object.values(this.keywordMap).filter(
       (template) =>
         template.params_type.min_images <= 1 &&
         template.params_type.min_texts <= 1
@@ -188,85 +217,55 @@ export class memes extends plugin {
   }
 
   async generateMeme(e, item, params = []) {
-    const { formData, name } = await this.prepareFormData(e, item, params);
+    try {
+      const { formData, name } = await this.prepareFormData(e, item, params);
 
-    let args;
-    if (item.params_type.args_type) {
-      args = handleArgs(item.key, params.join(" "), [
-        { text: name, gender: "unknown" },
-      ]);
-    } else {
-      args = handleArgs(item.key, "", [{ text: name, gender: "unknown" }]);
+      let args;
+      if (item.params_type.args_type) {
+        args = handleArgs(item.key, params.join(" "), [
+          { text: name, gender: "unknown" },
+        ]);
+      } else {
+        args = handleArgs(item.key, "", [{ text: name, gender: "unknown" }]);
+      }
+      if (args) formData.set("args", args);
+
+      const res = await fetch(`${url}${item.key}/`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        return e.reply(
+          `生成表情包失败：${res.status} ${res.statusText}\n错误信息：${errorText}`,
+          true
+        );
+      }
+
+      const resultBuffer = Buffer.from(await res.arrayBuffer());
+      return e.reply(segment.image(resultBuffer));
+    } catch (error) {
+      console.error("生成表情包出错", error);
+      return e.reply("抱歉，生成表情包时出错了。请稍后再试。");
     }
-    if (args) formData.set("args", args);
-
-    const res = await fetch(`${url}${item.key}/`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.status > 299) {
-      return e.reply(
-        `该表情至少需要${item.params_type.min_images}张图片，${item.params_type.min_texts}个文字描述，多个描述记得用空格隔开`,
-        true
-      );
-    }
-
-    const resultBuffer = Buffer.from(await res.arrayBuffer());
-    return e.reply(segment.image(resultBuffer));
   }
 
   async prepareFormData(e, item, params) {
     const formData = new FormData();
-    const masterQQ = (await import("../../../lib/config/config.js")).default
-      .masterQQ;
     const id = e.user_id;
-    const atId = e.at;
+    // 获取被 @ 的用户 ID
+    const atId =
+      e.at || (e.message && e.message.find((m) => m.type === "at")?.qq);
     const reply = e.getReply ? await e.getReply() : null;
 
-    // 处理图片
-    if (item.params_type.min_images >= 1) {
-      let imgUrl1, imgUrl2;
-      if (item.params_type.max_images === 1) {
-        if (reply) {
-          imgUrl1 = this.extractImageUrlFromMessage(reply.message);
-        } else if (atId) {
-          imgUrl1 = await this.getAvatarUrl(atId, e);
-        } else {
-          imgUrl1 = await this.getAvatarUrl(id, e);
-        }
-        const imgRes = await fetch(imgUrl1);
-        const buffer = Buffer.from(await imgRes.arrayBuffer());
-        formData.append("images", new Blob([buffer]));
-      } else if (item.params_type.min_images === 2) {
-        if (reply) {
-          imgUrl1 = await this.getAvatarUrl(id, e);
-          imgUrl2 = this.extractImageUrlFromMessage(reply.message);
-        } else if (atId) {
-          if (
-            (item.key === "do" || item.key === "little_do") &&
-            atId === masterQQ
-          ) {
-            imgUrl1 = await this.getAvatarUrl(atId, e);
-            imgUrl2 = await this.getAvatarUrl(id, e);
-          } else {
-            imgUrl1 = await this.getAvatarUrl(id, e);
-            imgUrl2 = await this.getAvatarUrl(atId, e);
-          }
-        } else {
-          imgUrl1 = await this.getAvatarUrl(id, e);
-          imgUrl2 = `http://q2.qlogo.cn/headimg_dl?dst_uin=1&spec=5`;
-        }
-        const imgRes1 = await fetch(imgUrl1);
-        const imgRes2 = await fetch(imgUrl2);
-        const buffer1 = Buffer.from(await imgRes1.arrayBuffer());
-        const buffer2 = Buffer.from(await imgRes2.arrayBuffer());
-        formData.append("images", new Blob([buffer1]));
-        formData.append("images", new Blob([buffer2]));
-      }
+    // 收集图片
+    const images = await this.collectImages(e, item, reply, atId);
+    for (const buffer of images) {
+      formData.append("images", new Blob([buffer]));
     }
 
-    // 处理文字
+    // 处理文字（使用您提供的逻辑）
     if (item.params_type.min_texts === 1 || item.params_type.max_texts === 1) {
       if (params.length === 0) {
         // 如果没有提供文本，获取默认文本并添加到 formData
@@ -288,12 +287,104 @@ export class memes extends plugin {
     return { formData, name };
   }
 
+  async collectImages(e, item, reply, atId) {
+    const minImages = item.params_type.min_images;
+    const maxImages = item.params_type.max_images;
+    let images = [];
+
+    // 从回复消息中提取图片
+    if (reply) {
+      images = this.extractImageUrlsFromMessage(reply.message);
+    }
+
+    // 从消息中提取图片
+    if (images.length < maxImages) {
+      images.push(...this.extractImageUrlsFromMessage(e.message));
+    }
+
+    // 根据需要的图片数量，调整逻辑
+    if (minImages === 1) {
+      // 当需要一张图片时
+      if (images.length === 0) {
+        if (atId) {
+          images.push(await this.getAvatarUrl(atId, e));
+        } else {
+          images.push(await this.getAvatarUrl(e.user_id, e));
+        }
+      }
+    } else if (minImages >= 2) {
+      // 当需要两张及以上图片时，使用之前的逻辑
+      // 添加发送者的头像
+      if (images.length < maxImages) {
+        images.push(await this.getAvatarUrl(e.user_id, e));
+      }
+
+      // 添加被 @ 用户的头像
+      if (images.length < maxImages && atId) {
+        images.push(await this.getAvatarUrl(atId, e));
+      }
+
+      // 如果图片数量仍然不足，使用发送者的头像填充
+      while (images.length < minImages) {
+        images.push(await this.getAvatarUrl(e.user_id, e));
+      }
+    }
+
+    // 确保图片数量不超过最大值
+    images = images.slice(0, maxImages);
+
+    // 获取图片数据
+    const buffers = [];
+    for (const imgUrl of images) {
+      const buffer = await this.fetchImageBuffer(imgUrl, e);
+      buffers.push(buffer);
+    }
+
+    return buffers;
+  }
+
+  extractImageUrlsFromMessage(message) {
+    const urls = [];
+    for (const i of message) {
+      if (i.type === "image" || i.type === "file") {
+        urls.push(i.url);
+      }
+    }
+    return urls;
+  }
+
+  async getAvatarUrl(id, e) {
+    if (this.avatarCache[id]) {
+      return this.avatarCache[id];
+    }
+    const member = await e.group?.pickMember?.(id);
+    const url =
+      (await member?.getAvatarUrl?.()) ||
+      (await e.friend?.getAvatarUrl?.()) ||
+      `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`;
+    this.avatarCache[id] = url;
+    return url;
+  }
+
+  async fetchImageBuffer(url, e) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`获取图片失败：${response.statusText}`);
+      }
+      return Buffer.from(await response.arrayBuffer());
+    } catch (error) {
+      console.error("图片获取失败", error);
+      throw error;
+    }
+  }
+
   async getUserInfo(atId, id, e) {
     const pick = atId
       ? await e.group?.pickMember?.(atId)
       : (await e.group?.pickMember?.(id)) || (await e.bot?.pickFriend?.(id));
     const info = (await pick?.getInfo?.()) || pick?.info || pick;
-    const name = info?.card || info?.nickname;
+    const name = info?.card || info?.nickname || "未知用户";
     return { name };
   }
 
@@ -301,44 +392,20 @@ export class memes extends plugin {
     const { name } = await this.getUserInfo(atId, e.user_id, e);
     return name;
   }
-
-  extractImageUrlFromMessage(message) {
-    for (const i of message) {
-      if (i.type === "image" || i.type === "file") {
-        return i.url;
-      }
-    }
-    return null;
-  }
-
-  async getAvatarUrl(id, e) {
-    const member = await e.group?.pickMember?.(id);
-    return (
-      (await member?.getAvatarUrl?.()) ||
-      (await e.friend?.getAvatarUrl?.()) ||
-      `http://q2.qlogo.cn/headimg_dl?dst_uin=${id}&spec=5`
-    );
-  }
 }
 
+// 参数处理函数
 function handleArgs(key, args, userInfos) {
   let argsObj = {};
+  args = args.trim();
   switch (key) {
-    case "always": {
-      const modeMap = {
-        "": "normal",
-        循环: "loop",
-        套娃: "circle",
-      };
-      argsObj = { mode: modeMap[args] || "normal" };
-      break;
-    }
-
     case "look_flat":
       argsObj = { ratio: parseInt(args) || 2 };
       break;
     case "crawl":
-      argsObj = { number: parseInt(args) || _.random(1, 92, false) };
+      argsObj = {
+        number: parseInt(args) || Math.floor(Math.random() * 92) + 1,
+      };
       break;
     case "symmetric": {
       const directionMap = {
@@ -356,7 +423,7 @@ function handleArgs(key, args, userInfos) {
       argsObj = { circle: args.startsWith("圆") };
       break;
     case "my_friend":
-      if (!args) args = _.trim(userInfos[0].text, "@");
+      if (!args) args = userInfos[0].text.trim().replace("@", "");
       argsObj = { name: args };
       break;
     case "looklook":
@@ -365,18 +432,44 @@ function handleArgs(key, args, userInfos) {
     case "gun":
     case "bubble_tea": {
       const directionMap = {
-        左: "right",
-        右: "left",
-        双手: "both",
+        左: "left",
+        右: "right",
+        两边: "both",
       };
       argsObj = { position: directionMap[args.trim()] || "right" };
+      break;
+    }
+    case "dog_dislike":
+      argsObj = { circle: args.startsWith("圆") };
+      break;
+    case "clown":
+      argsObj = { person: args.startsWith("爷") };
+      break;
+    case "note_for_leave":
+      if (args) {
+        argsObj = { time: args };
+      }
+      break;
+    case "mourning":
+      argsObj = { black: args.startsWith("黑白") || args.startsWith("灰") };
+      break;
+    case "genshin_eat": {
+      const roleMap = {
+        八重: 1,
+        胡桃: 2,
+        妮露: 3,
+        可莉: 4,
+        刻晴: 5,
+        钟离: 6,
+      };
+      argsObj = { character: roleMap[args.trim()] || 0 };
       break;
     }
   }
   argsObj.user_infos = userInfos.map((u) => {
     return {
-      name: _.trim(u.text, "@"),
-      gender: u.gender,
+      name: u.text.trim().replace("@", ""),
+      gender: u.gender || "unknown",
     };
   });
   return JSON.stringify(argsObj);
