@@ -68,6 +68,10 @@ export class api extends plugin {
           reg: "笑话",
           fnc: "xh",
         },
+        {
+          reg: "恐怖",
+          fnc: "horror",
+        },
       ],
     });
   }
@@ -207,5 +211,9 @@ export class api extends plugin {
       // 错误处理，发送错误消息
       e.reply("出错啦~稍后再试噢");
     }
+  }
+  async horror(e) {
+    await Apis.horror(e);
+    return true;
   }
 }

@@ -16,7 +16,7 @@ export class memes extends plugin {
         { reg: "^(#)?(meme(s)?|表情包)列表$", fnc: "memesList" },
         { reg: "^#?(meme(s)?|表情包)帮助", fnc: "memesHelp" },
         { reg: "^#?随机(meme(s)?|表情包|mm)", fnc: "randomMemes" },
-        { reg: "^#?(meme(s)?|表情包)更新", fnc: "memesUpdate" },
+        { reg: "^#?(meme(s)?|表情包)更新", fnc: "handleMemesUpdate" },
         { reg: "^#?(meme(s)?|表情包)搜索", fnc: "memesSearch" },
       ],
     });
@@ -54,31 +54,40 @@ export class memes extends plugin {
     this.reg = new RegExp(`^(${Object.keys(this.keywordMap).join("|")})`);
   }
 
-  async memesUpdate(e) {
-    e.reply("开始更新meme...可能要等一分钟（）");
+  async memesUpdate() {
     console.log("开始更新meme...");
     const response = await fetch(`${url}keys`);
     const keys = await response.json();
-
-    const infos = {};
-    for (const key of keys) {
+    const infoPromises = keys.map(async (key) => {
       const infoResponse = await fetch(`${url}${key}/info`);
       const info = await infoResponse.json();
+      return { key, info };
+    });
+    const infosArray = await Promise.all(infoPromises);
+    const infos = {};
+    for (const { key, info } of infosArray) {
       infos[key] = info;
       for (const keyword of info.keywords) {
         this.bq[keyword] = info;
         this.keywordMap[keyword] = info;
       }
     }
-
     const infoPath = path.join(process.cwd(), "data/memes/infos.json");
     fs.mkdirSync(path.dirname(infoPath), { recursive: true });
     fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
-
     await this.updateMemesListImage();
-
     console.log("meme更新成功");
-    e.reply("meme更新成功");
+  }
+  // 新增handleMemesUpdate方法，用于处理用户触发的更新事件
+  async handleMemesUpdate(e) {
+    try {
+      e.reply("开始更新meme...");
+      await this.memesUpdate(); // 调用更新方法
+      e.reply("meme更新成功");
+    } catch (error) {
+      console.error("meme更新失败", error);
+      e.reply("meme更新失败，请稍后再试。");
+    }
   }
 
   async memesList(e) {

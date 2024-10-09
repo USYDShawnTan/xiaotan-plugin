@@ -16,5 +16,6 @@ export class td extends plugin {
   async td(e) {
     await this.reply(segment.at("2559698787"));
     await this.reply("日你仙人");
+    await e.reply(segment.image("data/xn.jpg"));
   }
 }

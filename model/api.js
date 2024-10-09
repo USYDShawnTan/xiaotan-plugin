@@ -51,6 +51,13 @@ class Api {
     const text = await response.text();
     return text;
   }
+  async horror(e) {
+    const url = "https://backend.433200.xyz/horror?type=txt";
+    const response = await fetch(url);
+    const text = await response.text();
+    e.reply(text);
+    return true;
+  }
   async jrys() {
     const url = "https://backend.433200.xyz/jrys";
     const response = await fetch(url);
