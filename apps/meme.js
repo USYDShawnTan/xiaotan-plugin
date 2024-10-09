@@ -324,9 +324,9 @@ export class memes extends plugin {
         images.push(await this.getAvatarUrl(atId, e));
       }
 
-      // 如果图片数量仍然不足，使用发送者的头像填充
+      // 如果图片数量仍然不足，使用默认
       while (images.length < minImages) {
-        images.push(await this.getAvatarUrl(e.user_id, e));
+        images.push(await this.getAvatarUrl("default", e));
       }
     }
 
