@@ -208,7 +208,12 @@ export class memes extends plugin {
       return e.reply("未找到对应的表情包，请检查名称是否正确。");
     }
 
-    console.log(`触发 meme：${item.keywords.join(", ")} --- ${item.key}`);
+    console.log(
+      `触发 meme：${item.keywords.join(", ")} --- ${item.key}，触发共计（${
+        this.triggerCounts[item.key] || 0
+      }）次`
+    );
+
     // 更新触发计数并保存
     this.incrementTriggerCount(item.key);
     this.saveTriggerCounts();
