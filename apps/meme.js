@@ -119,7 +119,43 @@ export class memes extends plugin {
 
   async updateMemesListImage() {
     const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
-    const res = await fetch(`${url}render_list`, { method: "POST" });
+    
+    // 固定的截止日期，用于判断是否标记为 "new"
+    const cutoffDate = new Date("2024-08-15");
+
+    // 获取表情包信息并构建包含 "new" 标签的 meme_list
+    const response = await fetch(`${url}keys`);
+    const keys = await response.json();
+
+    const memeList = await Promise.all(
+      keys.map(async (key) => {
+        const infoResponse = await fetch(`${url}${key}/info`);
+        const info = await infoResponse.json();
+        
+        // 初始化标签数组
+        const labels = [];
+        
+        // 检查是否需要添加 "new" 标签
+        const dateCreated = new Date(info.date_created);
+        if (dateCreated > cutoffDate) {
+          labels.push("new");
+        }
+
+        return {
+          meme_key: key,
+          disabled: false,  // 可以根据实际需要设置
+          labels: labels,
+        };
+      })
+    );
+
+    // 发送带有自定义 meme_list 的请求体
+    const res = await fetch(`${url}render_list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ meme_list: memeList, text_template: "{keywords}", add_category_icon: true })
+    });
+
     const resultBuffer = Buffer.from(await res.arrayBuffer());
     fs.mkdirSync(path.dirname(listPath), { recursive: true });
     fs.writeFileSync(listPath, resultBuffer);
