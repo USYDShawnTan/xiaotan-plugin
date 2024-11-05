@@ -56,10 +56,12 @@ export class memes extends plugin {
       await this.updateMemesListImage();
     }
 
-    const escapedKeywords = Object.keys(this.keywordMap).map((k) =>
-      k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    );
+    const escapedKeywords = Object.keys(this.keywordMap)
+      .sort((a, b) => b.length - a.length)  // 根据长度从长到短排序
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    
     this.reg = new RegExp(`^(${escapedKeywords.join("|")})`);
+    
 
     this.initialized = true;
   }
