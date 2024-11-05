@@ -29,6 +29,31 @@ export class memes extends plugin {
     this.avatarCache = {};
     this.initialized = false;
     this.initPromise = this.init();
+
+    // 添加存储触发次数的文件路径和内存中的计数对象
+    this.triggerCountPath = path.join(
+      process.cwd(),
+      "data/memes/triggers.json"
+    );
+    this.triggerCounts = this.loadTriggerCounts();
+  }
+
+  // 加载触发次数数据
+  loadTriggerCounts() {
+    if (fs.existsSync(this.triggerCountPath)) {
+      const data = fs.readFileSync(this.triggerCountPath, "utf8");
+      return JSON.parse(data);
+    }
+    return {}; // 如果文件不存在，返回空对象
+  }
+
+  // 保存触发次数数据
+  saveTriggerCounts() {
+    fs.mkdirSync(path.dirname(this.triggerCountPath), { recursive: true });
+    fs.writeFileSync(
+      this.triggerCountPath,
+      JSON.stringify(this.triggerCounts, null, 2)
+    );
   }
 
   async init() {
@@ -57,11 +82,10 @@ export class memes extends plugin {
     }
 
     const escapedKeywords = Object.keys(this.keywordMap)
-      .sort((a, b) => b.length - a.length)  // 根据长度从长到短排序
+      .sort((a, b) => b.length - a.length) // 根据长度从长到短排序
       .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    
+
     this.reg = new RegExp(`^(${escapedKeywords.join("|")})`);
-    
 
     this.initialized = true;
   }
@@ -86,7 +110,6 @@ export class memes extends plugin {
           this.keywordMap[keyword] = info;
         }
       }
-
       const infoPath = path.join(process.cwd(), "data/memes/infos.json");
       fs.mkdirSync(path.dirname(infoPath), { recursive: true });
       fs.writeFileSync(infoPath, JSON.stringify(infos, null, 2));
@@ -121,7 +144,7 @@ export class memes extends plugin {
 
   async updateMemesListImage() {
     const listPath = path.join(process.cwd(), "data/memes/memes_list.png");
-    
+
     // 固定的截止日期，用于判断是否标记为 "new"
     const cutoffDate = new Date("2024-08-15");
 
@@ -133,19 +156,20 @@ export class memes extends plugin {
       keys.map(async (key) => {
         const infoResponse = await fetch(`${url}${key}/info`);
         const info = await infoResponse.json();
-        
         // 初始化标签数组
         const labels = [];
-        
         // 检查是否需要添加 "new" 标签
         const dateCreated = new Date(info.date_created);
         if (dateCreated > cutoffDate) {
           labels.push("new");
         }
-
+        // 检查是否需要添加 "hot" 标签
+        if (this.triggerCounts[key] && this.triggerCounts[key] >= 5) {
+          labels.push("hot");
+        }
         return {
           meme_key: key,
-          disabled: false,  // 可以根据实际需要设置
+          disabled: false, // 可以根据实际需要设置
           labels: labels,
         };
       })
@@ -155,7 +179,11 @@ export class memes extends plugin {
     const res = await fetch(`${url}render_list`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ meme_list: memeList, text_template: "{keywords}", add_category_icon: true })
+      body: JSON.stringify({
+        meme_list: memeList,
+        text_template: "{keywords}",
+        add_category_icon: true,
+      }),
     });
 
     const resultBuffer = Buffer.from(await res.arrayBuffer());
@@ -181,12 +209,23 @@ export class memes extends plugin {
     }
 
     console.log(`触发 meme：${item.keywords.join(", ")} --- ${item.key}`);
+    // 更新触发计数并保存
+    this.incrementTriggerCount(item.key);
+    this.saveTriggerCounts();
 
     if (remainingText.endsWith("详情") || remainingText.endsWith("帮助")) {
       return this.sendItemDetails(e, match, item);
     }
 
     return this.generateMeme(e, item, params);
+  }
+
+  // 更新触发计数
+  incrementTriggerCount(key) {
+    if (!this.triggerCounts[key]) {
+      this.triggerCounts[key] = 0;
+    }
+    this.triggerCounts[key] += 1;
   }
 
   async memesHelp(e) {
