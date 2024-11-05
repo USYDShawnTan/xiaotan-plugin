@@ -86,7 +86,6 @@ export class memes extends plugin {
       .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
     this.reg = new RegExp(`^(${escapedKeywords.join("|")})`);
-
     this.initialized = true;
   }
 
@@ -169,7 +168,7 @@ export class memes extends plugin {
         }
         return {
           meme_key: key,
-          disabled: false, // 可以根据实际需要设置
+          disabled: false,
           labels: labels,
         };
       })
@@ -209,9 +208,9 @@ export class memes extends plugin {
     }
 
     console.log(
-      `触发 meme：${item.keywords.join(", ")} --- ${item.key}，触发共计（${
+      `触发 meme：${item.keywords.join(", ")} --- ${item.key}，触发共计${
         this.triggerCounts[item.key] || 0
-      }）次`
+      }次`
     );
 
     // 更新触发计数并保存

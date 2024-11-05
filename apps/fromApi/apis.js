@@ -105,7 +105,7 @@ export class api extends plugin {
     }
     let firstEmoji = encodeURIComponent(emojis[0]);
     let secondEmoji = encodeURIComponent(emojis[1]);
-    let url = `https://backend.433200.xyz/emoji?emoji1=${firstEmoji}&emoji2=${secondEmoji}`;
+    let url = `https://api.433200.xyz/api/emoji?emoji1=${firstEmoji}&emoji2=${secondEmoji}`;
     try {
       let res = await fetch(url);
       if (res.ok) {

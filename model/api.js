@@ -10,7 +10,7 @@ class Api {
     return true;
   }
   async cat(e) {
-    const url = "https://backend.433200.xyz/catdog?type=cat";
+    const url = "https://api.433200.xyz/api/catdog?type=cat";
     const response = await fetch(url);
     const cat = await response.json();
     const image_url = cat[0].url;
@@ -18,7 +18,7 @@ class Api {
     return true;
   }
   async dog(e) {
-    const url = "https://backend.433200.xyz/catdog?type=dog";
+    const url = "https://api.433200.xyz/api/catdog?type=dog";
     const response = await fetch(url);
     const dog = await response.json();
     const image_url = dog[0].url;
@@ -26,40 +26,40 @@ class Api {
     return true;
   }
   async crazythursday(e) {
-    const url = "https://backend.433200.xyz/crazythursday?type=txt";
+    const url = "https://api.433200.xyz/api/crazythursday?type=txt";
     const response = await fetch(url);
     const text = await response.text();
     e.reply(text);
     return true;
   }
   async hgt(e) {
-    const url = "https://backend.433200.xyz/hgt?type=txt";
+    const url = "https://api.433200.xyz/api/hgt?type=txt";
     const response = await fetch(url);
     const text = await response.text();
     e.reply(text);
     return true;
   }
   async fafeng() {
-    const url = "https://backend.433200.xyz/fafeng?type=txt";
+    const url = "https://api.433200.xyz/api/fafeng?type=txt";
     const response = await fetch(url);
     const text = await response.text();
     return text;
   }
   async answerbook() {
-    const url = "https://backend.433200.xyz/answerbook?type=txt";
+    const url = "https://api.433200.xyz/api/answerbook?type=txt";
     const response = await fetch(url);
     const text = await response.text();
     return text;
   }
   async horror(e) {
-    const url = "https://backend.433200.xyz/horror?type=txt";
+    const url = "https://api.433200.xyz/api/horror?type=txt";
     const response = await fetch(url);
     const text = await response.text();
     e.reply(text);
     return true;
   }
   async jrys() {
-    const url = "https://backend.433200.xyz/jrys";
+    const url = "https://api.433200.xyz/api/jrys";
     const response = await fetch(url);
     const fortuneData = await response.json();
     const buildFortuneMessage = (fortuneData) => {
