@@ -100,7 +100,7 @@ export class api extends plugin {
   async emojimix(e) {
     let emojis = e.msg.match(/\p{Emoji_Presentation}/gu);
     if (!emojis || emojis.length !== 2) {
-      await e.reply("请输入两个emoji进行合成。");
+      await e.reply("请输入两个emoji进行合成");
       return;
     }
     let firstEmoji = encodeURIComponent(emojis[0]);
