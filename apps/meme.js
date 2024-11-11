@@ -399,7 +399,6 @@ export class memes extends plugin {
       if (atId && images.length < maxImages) {
         images.push(await this.getAvatarUrl(atId, e)); // 添加被@用户的头像
       }
-
       // 从回复和消息中提取图片
       if (reply && images.length < maxImages) {
         images.push(...this.extractImageUrlsFromMessage(reply.message));
@@ -407,7 +406,6 @@ export class memes extends plugin {
       if (images.length < maxImages) {
         images.push(...this.extractImageUrlsFromMessage(e.message));
       }
-
       // 如果图片数量不足，用默认头像补足
       while (images.length < minImages) {
         images.push(await this.getAvatarUrl("default", e));
