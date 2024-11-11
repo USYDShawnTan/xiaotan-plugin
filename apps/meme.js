@@ -373,16 +373,6 @@ export class memes extends plugin {
     const maxImages = item.params_type.max_images;
     let images = [];
 
-    // 从回复消息中提取图片
-    if (reply) {
-      images = this.extractImageUrlsFromMessage(reply.message);
-    }
-
-    // 从消息中提取图片
-    if (images.length < maxImages) {
-      images.push(...this.extractImageUrlsFromMessage(e.message));
-    }
-
     // 根据需要的图片数量，调整逻辑
     if (minImages === 1) {
       // 当需要一张图片时
@@ -391,6 +381,16 @@ export class memes extends plugin {
           images.push(await this.getAvatarUrl(atId, e));
         } else {
           images.push(await this.getAvatarUrl(e.user_id, e));
+        }
+
+        // 从回复消息中提取图片
+        if (reply) {
+          images = this.extractImageUrlsFromMessage(reply.message);
+        }
+
+        // 从消息中提取图片
+        if (images.length < maxImages) {
+          images.push(...this.extractImageUrlsFromMessage(e.message));
         }
       }
     } else if (minImages >= 2) {
@@ -405,6 +405,15 @@ export class memes extends plugin {
         images.push(await this.getAvatarUrl(atId, e));
       }
 
+      // 从回复消息中提取图片
+      if (reply) {
+        images = this.extractImageUrlsFromMessage(reply.message);
+      }
+
+      // 从消息中提取图片
+      if (images.length < maxImages) {
+        images.push(...this.extractImageUrlsFromMessage(e.message));
+      }
       // 如果图片数量仍然不足，使用默认
       while (images.length < minImages) {
         images.push(await this.getAvatarUrl("default", e));
