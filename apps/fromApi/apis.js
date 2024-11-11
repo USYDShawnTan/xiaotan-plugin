@@ -29,7 +29,7 @@ export class api extends plugin {
           fnc: "crazythursday",
         },
         {
-          reg: /\p{Emoji_Presentation}{2}$/gu,
+          reg: /\p{Emoji_Presentation}{2}$/u,
           fnc: "emojimix",
         },
         {
