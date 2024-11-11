@@ -17,7 +17,7 @@ export class api extends plugin {
           fnc: "miao",
         },
         {
-          reg: "/^(?!.*菜狗).*?(狗|gou|勾|汪).*$/",
+          reg: /^(?!.*菜狗).*?(狗|gou|勾|汪).*$/,
           fnc: "wang",
         },
         {
@@ -29,7 +29,7 @@ export class api extends plugin {
           fnc: "crazythursday",
         },
         {
-          reg: "/p{Emoji_Presentation}{2}$/u",
+          reg: /p{Emoji_Presentation}{2}$/u,
           fnc: "emojimix",
         },
         {
