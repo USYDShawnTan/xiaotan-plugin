@@ -2,7 +2,5 @@
   "name": "xiaotan-plugin",
   "version": "3.2.0",
   "type": "module",
-  "dependencies": {
-    "gpti": "^2.1.7"
-  }
+  "dependencies": {}
 }
