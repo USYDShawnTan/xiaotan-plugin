@@ -394,27 +394,21 @@ export class memes extends plugin {
         }
       }
     } else if (minImages >= 2) {
-      // 当需要两张及以上图片时，使用之前的逻辑
-      // 添加发送者的头像
-      if (images.length < maxImages) {
-        images.push(await this.getAvatarUrl(e.user_id, e));
+      // 当需要两张及以上图片时，优先获取发送者和被@用户的头像
+      images.push(await this.getAvatarUrl(e.user_id, e)); // 添加发送者的头像
+      if (atId && images.length < maxImages) {
+        images.push(await this.getAvatarUrl(atId, e)); // 添加被@用户的头像
       }
 
-      // 添加被 @ 用户的头像
-      if (images.length < maxImages && atId) {
-        images.push(await this.getAvatarUrl(atId, e));
+      // 从回复和消息中提取图片
+      if (reply && images.length < maxImages) {
+        images.push(...this.extractImageUrlsFromMessage(reply.message));
       }
-
-      // 从回复消息中提取图片
-      if (reply) {
-        images = this.extractImageUrlsFromMessage(reply.message);
-      }
-
-      // 从消息中提取图片
       if (images.length < maxImages) {
         images.push(...this.extractImageUrlsFromMessage(e.message));
       }
-      // 如果图片数量仍然不足，使用默认
+
+      // 如果图片数量不足，用默认头像补足
       while (images.length < minImages) {
         images.push(await this.getAvatarUrl("default", e));
       }
