@@ -373,23 +373,22 @@ export class memes extends plugin {
     const maxImages = item.params_type.max_images;
     let images = [];
 
-    // 从回复消息中提取图片
-    if (reply) {
-      images = this.extractImageUrlsFromMessage(reply.message);
-    }
-    // 从消息中提取图片
-    if (images.length < maxImages) {
-      images.push(...this.extractImageUrlsFromMessage(e.message));
-    }
-
     // 根据需要的图片数量，调整逻辑
     if (minImages === 1) {
+      images = this.extractImageUrlsFromMessage(e.message);
       // 当需要一张图片时
       if (images.length === 0) {
-        if (atId) {
-          images.push(await this.getAvatarUrl(atId, e));
-        } else {
-          images.push(await this.getAvatarUrl(e.user_id, e));
+        // 如果消息中没有图片，从回复消息中提取图片
+        if (reply) {
+          images = this.extractImageUrlsFromMessage(reply.message);
+        }
+        // 如果仍然没有图片，使用头像
+        if (images.length === 0) {
+          if (atId) {
+            images.push(await this.getAvatarUrl(atId, e));
+          } else {
+            images.push(await this.getAvatarUrl(e.user_id, e));
+          }
         }
       }
     } else if (minImages >= 2) {
