@@ -132,27 +132,6 @@ const ResponseConfig = {
   },
 };
 
-// 工具函数
-const Utils = {
-  getCurrentHour: () => new Date().getHours(),
-
-  getTimeRange: (hour) => {
-    for (const [range, { start, end }] of Object.entries(TimeRanges)) {
-      if (end > start) {
-        if (hour >= start && hour < end) return range;
-      } else {
-        // 处理跨天的情况，如 23:00-5:00
-        if (hour >= start || hour < end) return range;
-      }
-    }
-    return "default";
-  },
-
-  getRandomResponse: (responses) => {
-    return responses[Math.floor(Math.random() * responses.length)];
-  },
-};
-
 // 问候处理类
 export class Greetings extends plugin {
   constructor() {
@@ -183,17 +162,48 @@ export class Greetings extends plugin {
         },
       ],
     });
+    this.timeRanges = TimeRanges;
   }
 
-  // 统一的问候处理函数
   async handleGreeting(e, greetingType) {
-    const currentHour = Utils.getCurrentHour();
-    const timeRange = Utils.getTimeRange(currentHour);
-    const responses =
-      ResponseConfig[greetingType][timeRange] ||
-      ResponseConfig[greetingType].default;
+    try {
+      const currentHour = new Date().getHours();
+      // 使用 this.timeRanges 而不是直接使用 TimeRanges
+      let timeRange = "default";
 
-    await e.reply(Utils.getRandomResponse(responses), true);
-    return true;
+      // 根据当前小时确定时间范围
+      for (const [range, { start, end }] of Object.entries(this.timeRanges)) {
+        if (end > start) {
+          if (currentHour >= start && currentHour < end) {
+            timeRange = range;
+            break;
+          }
+        } else {
+          // 处理跨天的情况，如 23:00-5:00
+          if (currentHour >= start || currentHour < end) {
+            timeRange = range;
+            break;
+          }
+        }
+      }
+
+      const responses =
+        ResponseConfig[greetingType][timeRange] ||
+        ResponseConfig[greetingType].default;
+
+      if (!responses) {
+        console.error(
+          `[每日问候] 未找到对应回复配置: ${greetingType}, ${timeRange}`
+        );
+        return false;
+      }
+
+      const response = responses[Math.floor(Math.random() * responses.length)];
+      await e.reply(response, true);
+      return true;
+    } catch (error) {
+      console.error("[每日问候] 处理出错:", error);
+      return false;
+    }
   }
 }
