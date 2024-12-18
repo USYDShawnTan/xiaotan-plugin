@@ -98,7 +98,7 @@ export class HoroscopePlugin extends plugin {
           fortune.fortune.health
         )})\n` +
         `综合评语: ${fortune.shortcomment}\n\n` +
-        `详细运势:\n` +
+        `-----详细运势-----:\n` +
         `🌅综合: ${fortune.fortunetext.all}\n` +
         `❤️爱情: ${fortune.fortunetext.love}\n` +
         `💼事业: ${fortune.fortunetext.work}\n` +
