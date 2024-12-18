@@ -25,8 +25,6 @@ pnpm install
 
 # 插件说明
 
-> 部分插件适配了ntqq，所以使用icqq可能导致小bug（比如从回复中找图找不到）
-
 ![](./resources/readme/1.jpg)
 
 

@@ -1,155 +1,160 @@
-// 获取当前小时
-const getCurrentHour = () => new Date().getHours();
-const TextDict = {
-  GoodMoring: {
-    "5:00-8:00": [
+// 时间区间配置，使用24小时制统一格式
+const TimeRanges = {
+  EARLY_MORNING: { start: 5, end: 8 },
+  MORNING: { start: 8, end: 12 },
+  NOON: { start: 11, end: 13 },
+  AFTERNOON: { start: 13, end: 17 },
+  EVENING: { start: 17, end: 21 },
+  NIGHT: { start: 21, end: 23 },
+  LATE_NIGHT: { start: 23, end: 5 },
+};
+
+// 响应文本配置
+const ResponseConfig = {
+  goodMorning: {
+    [TimeRanges.EARLY_MORNING.start]: [
       "嗨，新的一天开始啦！愿你充满活力，迎接新的冒险！",
       "清晨的鸟鸣和微风都在向你打招呼，早安！",
       "崭新的一天，充满希望和机会。祝你早安，愿你笑逐颜开！",
+      "早安！让我们以饱满的热情开启今天的征程！",
+      "一日之计在于晨，愿你的一天从美好的早晨开始！",
+      "早安！太阳已经为你打点好了一切，准备好开始了吗？",
+      "芝兰生于幽谷，不以无人而不芳。早安，愿你如兰般芬芳！",
     ],
-    "8:00-9:00": [
+    [TimeRanges.MORNING.start]: [
       "早上好！虽然有点晚，但愿你的笑容早早闪亮起来！",
       "都这个点了还说早安，是不是想多享受一会儿被窝的温暖？",
-      "嘿，早安？这是刚刚踏出被窝还是准备再来个小憩？",
+      "阳光已经照进窗子啦，起床太阳晒屁股了哦！",
+      "早安！看来你也是个热爱睡觉的小懒虫呢～",
+      "懒懒的早晨，也是美好的开始，早安！",
+      "睡到自然醒的感觉真好，不是吗？早安！",
+      "享受美好的早晨时光，即使来得稍晚一些～",
     ],
-    "9:00-12:00": [
-      "早上好？这个点怕是早餐都要吃午饭了吧！",
-      "你这早安发得有点晚啊，是不是昨晚熬夜刷剧了？",
-      "早安？太阳都晒屁股了，你才起床吗？",
-    ],
-    "12:00-18:00": [
-      "早上好？你确定不是下午好吗？是不是时差没倒过来？",
-      "这个点说早上好，你是不是刚睡醒？昼夜颠倒了吧！",
-      "午安都过了，你还在这说早安。是不是需要个闹钟来拯救你的作息时间？",
-    ],
-    "18:00-23:00": [
-      "晚上好？不对，现在是晚上了。你的早安是不是发错时间了？",
-      "这个点说早上好？你确定不是晚安吗？是不是今天过得太快了？",
-      "晚上好！不过你的‘早上好’是不是穿越了？需要我帮你倒倒时差吗？",
-    ],
-    "23:00-5:00": [
-      "晚上好？已经是深夜了，你的‘早上好’是不是想提前预约明天的？",
-      "这个点说早上好，你是不是准备半夜起来干坏事？",
-      "晚安！不过你的‘早上好’让我有点懵，你是不是时差党？",
+    default: [
+      "这个点说早安，你的生物钟是不是需要调整一下呢？",
+      "太阳都晒屁股了，你才起床吗？",
+      "emmm...现在说早安是不是有点不合时宜？",
+      "你是不是把闹钟给吃了？这个点才说早安！",
+      "让我猜猜，你是不是又熬夜了？这个时候才说早安！",
+      "你的早安来得太晚了，太阳都想和月亮约会了！",
+      "时差党？还是熬夜冠军？这个点的早安真特别！",
     ],
   },
 
-  GoodNoon: {
-    "11:00-13:00": [
-      "中午好，吃饭了吗？祝你午餐愉快！",
-      "阳光正好，微风不燥，愿你中午好心情！",
-      "中午好，愿你的一天过得充实又愉快！",
+  goodNoon: {
+    [TimeRanges.NOON.start]: [
+      "午安！是时候享用美味的午餐了！",
+      "阳光正好，微风不燥，午安安！",
+      "中午好！记得午休哦，补充能量才能继续奋斗！",
+      "劳逸结合，午休时光到啦！",
+      "午安！来点小憩，让下午的精力更充沛！",
+      "阳光正当头，别忘了午休哦！",
+      "忙碌的上午过去了，来享受午后时光吧！",
     ],
-    "13:00-18:00": [
-      "下午好！已经过了中午了，你这是不是刚睡醒的节奏？",
-      "中午好？这个点都快吃晚饭了，你是不是刚起床？",
-      "下午好！你的中午好来得有点晚啊，是不是午睡过头了？",
+    [TimeRanges.AFTERNOON.start]: [
+      "这个点说午安，是不是刚睡醒呀？",
+      "下午好！你的午安来得有点晚啦！",
+      "午安？太阳都偏西了呢～",
+      "你的午安像夕阳一样来得晚却温暖～",
+      "这个点的午安，是不是把时钟调慢了？",
+      "午安？让我看看现在是几点...哦，原来已经过午了！",
+      "你的午安像是一封迟到的信，但依然温暖人心～",
     ],
-    "18:00-0:00": [
-      "下午好！已经过了中午了，你这是不是刚睡醒的节奏？",
-      "中午好？这个点都快吃晚饭了，你是不是刚起床？",
-      "下午好！你的中午好来得有点晚啊，是不是午睡过头了？",
-    ],
-    "0:00-5:00": [
-      "下午好！已经过了中午了，你这是不是刚睡醒的节奏？",
-      "中午好？这个点都快吃晚饭了，你是不是刚起床？",
-      "下午好！你的中午好来得有点晚啊，是不是午睡过头了？",
-    ],
-    "5:00-11:00": [
-      "下午好！已经过了中午了，你这是不是刚睡醒的节奏？",
-      "中午好？这个点都快吃晚饭了，你是不是刚起床？",
-      "下午好！你的中午好来得有点晚啊，是不是午睡过头了？",
-    ],
-  },
-
-  GoodEvening: {
-    "17:00-21:00": [
-      "晚上好，愿你有一个宁静的夜晚！",
-      "晚上好，今天过得怎么样？希望你晚上愉快！",
-      "夜幕降临，祝你晚上好，心情愉快！",
-    ],
-    "21:00-00:00": [
-      "晚上好！准备休息了吗？熬夜对身体不好哦！",
-      "深夜了，还在忙碌吗？记得早点休息，晚安！",
-      "晚上好！不过快要进入梦乡了，你是不是也该睡觉了？",
-    ],
-    "00:00-7:00": [
-      "晚上好？已经是深夜到凌晨了，你是不是该睡觉了？",
-      "这个点说晚上好，你是不是夜猫子准备出动了？",
-      "晚安！不过你的‘晚上好’…… 你是不是该调整作息了？",
-    ],
-    "00:00-7:00": [
-      "晚上好？已经是深夜到凌晨了，你是不是该睡觉了？",
-      "这个点说晚上好，你是不是夜猫子准备出动了？",
-      "晚安！不过你的‘晚上好’…… 你是不是该调整作息了？",
-    ],
-    "00:00-7:00": [
-      "晚上好？已经是深夜到凌晨了，你是不是该睡觉了？",
-      "这个点说晚上好，你是不是夜猫子准备出动了？",
-      "晚安！不过你的‘晚上好’…… 你是不是该调整作息了？",
-    ],
-    "7:00-12:00": [
-      "早上好！已经是上午了，你的晚上好是不是发错时间了？",
-      "这个点说晚上好？你是不是刚起床还是准备睡觉？",
-      "中午好都快到了，你还在说晚上好。是不是需要我帮你倒倒时差？",
-    ],
-    "12:00-17:00": [
-      "下午好！已经是下午了，你的晚上好是不是穿越了？",
-      "这个点说晚上好？你是不是把下午当成晚上了？",
-      "下午好都快过完了，你才说晚上好。是不是太忙了？",
+    default: [
+      "现在说午安，你的时间概念真是与众不同呢！",
+      "你是在哪个时区啊？这会儿才说午安！",
+      "我觉得你可能需要一个新闹钟，这个点说午安真是特别！",
+      "打破常规的午安，你总是这么与众不同～",
+      "不按套路出牌的午安，你真是生活的艺术家！",
+      "这个点说午安，是想把一天掰成两天过吗？",
+      "时间魔法师，你的午安总是来得特别！",
     ],
   },
 
-  GoodNight: {
-    "21:00-23:00": [
-      "晚安，愿你有一个好梦！",
-      "晚安，今天辛苦了！祝你有个美好的夜晚！",
-      "夜深了，该休息了。晚安！",
+  goodEvening: {
+    [TimeRanges.EVENING.start]: [
+      "晚上好！夜色温柔，愿你心情愉快！",
+      "忙碌了一天，是时候放松一下啦！",
+      "晚上好！愿你的夜晚充满温馨！",
+      "华灯初上，愿你的夜晚美好如诗！",
+      "晚上好！让温柔的月色安抚疲惫的心灵～",
+      "星星已经迫不及待想见你，晚上好！",
+      "夜晚的美好才刚刚开始，晚上好！",
     ],
-    "23:00-2:00": [
-      "晚安！已经是深夜了，你是不是还在熬夜？",
-      "这个点还不睡？熬夜对身体不好哦！早点休息吧！",
-      "晚安！不过你的熬夜行为让我有点担心，是不是有什么心事？",
+    [TimeRanges.NIGHT.start]: [
+      "夜深了，记得早点休息哦！",
+      "晚上好！不过已经该准备睡觉啦！",
+      "夜已深，愿你梦里有温暖的月光！",
+      "晚安比晚好更适合现在呢！",
+      "繁星已布满夜空，该休息啦！",
+      "夜深人静，是时候和周公约会了！",
+      "月亮都打哈欠了，该睡觉啦！",
     ],
-    "2:00-7:00": [
-      "晚安！夜深人静了，你是不是该睡觉了？",
-      "这个点还不睡？是不是准备通宵了？熬夜伤身哦！",
-      "都快天亮了还不睡？你是不是要准备少走几十年弯路提前离开这个世界？",
+    default: [
+      "你的晚上好来得特别，就像你一样与众不同！",
+      "打破常规的晚上好，你总是这么特别！",
+      "这个点说晚上好，是想把一天过成两天吗？",
+      "你的作息和太阳肯定有点小误会！",
+      "时间魔术师，你的晚上好总是来得奇妙！",
+      "跨时空的晚上好，你的生活真的很精彩！",
+      "不走寻常路的晚上好，你的生活节奏真独特！",
     ],
-    "7:00-11:0": [
-      "早上好！已经是上午了，你的晚上好是不是发错时间了？",
-      "这个点说晚上好？你是不是刚起床还是准备睡觉？",
-      "中午好都快到了，你还在说晚上好。是不是需要我帮你倒倒时差？",
+  },
+
+  goodNight: {
+    [TimeRanges.NIGHT.start]: [
+      "晚安！愿你有个甜美的梦！",
+      "夜深了，愿你睡个好觉！",
+      "晚安！明天见，好梦！",
+      "累了一天，是时候好好休息了！",
+      "晚安！愿月光守护你的梦乡～",
+      "让温柔的夜色陪你入眠，晚安！",
+      "星星会守护你的梦，晚安！",
     ],
-    "11:00-13:00": [
-      "中午好！别人都睡午觉了你才说晚安？",
-      "这个点说晚安？你是不是刚起床还是准备午睡？",
-      "午安都快过完了你才说晚安。是不是太忙了？",
+    [TimeRanges.LATE_NIGHT.start]: [
+      "这么晚还不睡觉，是有心事吗？",
+      "熬夜可不好哦，快去休息吧！",
+      "月亮都累了，你也该睡了！",
+      "深夜的晚安，记得照顾好自己！",
+      "已经这么晚了，要好好休息哦！",
+      "让温暖的被窝治愈疲惫的你，晚安！",
+      "夜深人静，是最好的休息时间，晚安！",
     ],
-    "13:00-17:00": [
-      "下午好！下午了才说晚安你是要少走几十年弯路提前去世吗？",
-      "这个点说晚安？你是不是把下午当成晚上了？",
-      "下午好都快过完了你才说晚安。是不是需要我帮你倒倒时差？",
-    ],
-    "17:00-19:00": [
-      "晚上好！这么早就睡觉了吗？我不信。",
-      "这个点说晚安？你是不是今天太累了想早点休息？",
-      "晚上好！不过你的‘晚安’让我有点想笑你是不是提前进入梦乡了？",
-    ],
-    "19:00-21:00": [
-      "晚上好，准备休息了吗？愿你有个好梦！",
-      "晚安！愿你今晚有个美好的梦境！",
-      "夜幕降临，祝你晚安，好梦相伴！",
+    default: [
+      "现在说晚安，你的生物钟可能需要调整一下！",
+      "这个点说晚安，是不是把钟表拨错了？",
+      "你的晚安来得真是独特，就像你一样！",
+      "打破常规的晚安，你的作息真特别！",
+      "该不会是昨天的晚安忘记说了吧？",
+      "这个点说晚安，是准备睡到太阳打西边出来吗？",
+      "时间魔法师，你的晚安总是这么与众不同！",
     ],
   },
 };
 
-// 随机获取一个元素
-const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// 工具函数
+const Utils = {
+  getCurrentHour: () => new Date().getHours(),
 
-// 导出一个问候插件
-export class greetings extends plugin {
-  // 构建正则匹配等
+  getTimeRange: (hour) => {
+    for (const [range, { start, end }] of Object.entries(TimeRanges)) {
+      if (end > start) {
+        if (hour >= start && hour < end) return range;
+      } else {
+        // 处理跨天的情况，如 23:00-5:00
+        if (hour >= start || hour < end) return range;
+      }
+    }
+    return "default";
+  },
+
+  getRandomResponse: (responses) => {
+    return responses[Math.floor(Math.random() * responses.length)];
+  },
+};
+
+// 问候处理类
+export class Greetings extends Plugin {
   constructor() {
     super({
       name: "每日问候",
@@ -158,207 +163,37 @@ export class greetings extends plugin {
       rule: [
         {
           reg: "^([#/])?(早安|早上好|早安丫|早|早早|早早早)$",
-          fnc: "goodMorning",
+          fnc: "handleGreeting",
+          params: ["goodMorning"],
         },
         {
           reg: "^([#/])?(午安|午好|中午好|午安丫)$",
-          fnc: "goodNoon",
+          fnc: "handleGreeting",
+          params: ["goodNoon"],
         },
         {
           reg: "^([#/])?(下午好|晚上好)$",
-          fnc: "goodEvening",
+          fnc: "handleGreeting",
+          params: ["goodEvening"],
         },
         {
           reg: "^([#/])?(晚安|晚安丫|晚安安|晚安晚安|安|安安)$",
-          fnc: "goodNight",
+          fnc: "handleGreeting",
+          params: ["goodNight"],
         },
       ],
     });
   }
 
-  // 早安问候
-  async goodMorning(e) {
-    const currentHour = getCurrentHour();
+  // 统一的问候处理函数
+  async handleGreeting(e, greetingType) {
+    const currentHour = Utils.getCurrentHour();
+    const timeRange = Utils.getTimeRange(currentHour);
+    const responses =
+      ResponseConfig[greetingType][timeRange] ||
+      ResponseConfig[greetingType].default;
 
-    switch (true) {
-      case currentHour >= 5 && currentHour < 8:
-        await e.reply(
-          getRandomElement(TextDict["GoodMoring"]["5:00-8:00"]),
-          true
-        );
-        break;
-      case currentHour >= 8 && currentHour < 9:
-        await e.reply(
-          getRandomElement(TextDict["GoodMoring"]["8:00-9:00"]),
-          true
-        );
-        break;
-      case currentHour >= 9 && currentHour < 12:
-        await e.reply(
-          getRandomElement(TextDict["GoodMoring"]["9:00-12:00"]),
-          true
-        );
-        break;
-      case currentHour >= 12 && currentHour < 18:
-        await e.reply(
-          getRandomElement(TextDict["GoodMoring"]["12:00-18:00"]),
-          true
-        );
-        break;
-      case currentHour >= 18 && currentHour < 23:
-        await e.reply(
-          getRandomElement(TextDict["GoodMoring"]["18:00-23:00"]),
-          true
-        );
-        break;
-      default:
-        await e.reply(
-          getRandomElement(TextDict["GoodMoring"]["23:00-5:00"]),
-          true
-        );
-        break;
-    }
-    return true;
-  }
-
-  // 午安问候
-  async goodNoon(e) {
-    const currentHour = getCurrentHour();
-
-    switch (true) {
-      case currentHour >= 11 && currentHour < 13:
-        await e.reply(
-          getRandomElement(TextDict["GoodNoon"]["11:00-13:00"]),
-          true
-        );
-        break;
-      case currentHour >= 13 && currentHour < 18:
-        await e.reply(
-          getRandomElement(TextDict["GoodNoon"]["13:00-18:00"]),
-          true
-        );
-        break;
-      case currentHour >= 18 && currentHour < 0:
-        await e.reply(
-          getRandomElement(TextDict["GoodNoon"]["18:00-0:00"]),
-          true
-        );
-        break;
-      case currentHour >= 0 && currentHour < 5:
-        await e.reply(
-          getRandomElement(TextDict["GoodNoon"]["0:00-5:00"]),
-          true
-        );
-        break;
-      default:
-        await e.reply(
-          getRandomElement(TextDict["GoodNoon"]["5:00-11:00"]),
-          true
-        );
-        break;
-    }
-    return true;
-  }
-
-  // 晚上问候
-  async goodEvening(e) {
-    const currentHour = getCurrentHour();
-
-    switch (true) {
-      case currentHour >= 17 && currentHour < 21:
-        await e.reply(
-          getRandomElement(TextDict["GoodEvening"]["17:00-21:00"]),
-          true
-        );
-        break;
-      case currentHour >= 21 && currentHour < 0:
-        await e.reply(
-          getRandomElement(TextDict["GoodEvening"]["21:00-00:00"]),
-          true
-        );
-        break;
-      case currentHour >= 0 && currentHour < 7:
-        await e.reply(
-          getRandomElement(TextDict["GoodEvening"]["00:00-7:00"]),
-          true
-        );
-        break;
-      case currentHour >= 7 && currentHour < 12:
-        await e.reply(
-          getRandomElement(TextDict["GoodEvening"]["7:00-12:00"]),
-          true
-        );
-        break;
-      case currentHour >= 12 && currentHour < 17:
-        await e.reply(
-          getRandomElement(TextDict["GoodEvening"]["12:00-17:00"]),
-          true
-        );
-        break;
-      default:
-        await e.reply(
-          getRandomElement(TextDict["GoodEvening"]["17:00-19:00"]),
-          true
-        );
-        break;
-    }
-    return true;
-  }
-
-  // 晚安问候
-  async goodNight(e) {
-    const currentHour = getCurrentHour();
-
-    switch (true) {
-      case currentHour >= 21 && currentHour < 23:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["21:00-23:00"]),
-          true
-        );
-        break;
-      case currentHour >= 23 && currentHour < 2:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["23:00-2:00"]),
-          true
-        );
-        break;
-      case currentHour >= 2 && currentHour < 7:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["2:00-7:00"]),
-          true
-        );
-        break;
-      case currentHour >= 7 && currentHour < 11:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["7:00-11:0"]),
-          true
-        );
-        break;
-      case currentHour >= 11 && currentHour < 13:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["11:00-13:00"]),
-          true
-        );
-        break;
-      case currentHour >= 13 && currentHour < 17:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["13:00-17:00"]),
-          true
-        );
-        break;
-      case currentHour >= 17 && currentHour < 19:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["17:00-19:00"]),
-          true
-        );
-        break;
-      default:
-        await e.reply(
-          getRandomElement(TextDict["GoodNight"]["19:00-21:00"]),
-          true
-        );
-        break;
-    }
+    await e.reply(Utils.getRandomResponse(responses), true);
     return true;
   }
 }
