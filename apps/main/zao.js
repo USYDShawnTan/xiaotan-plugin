@@ -1,11 +1,12 @@
+// 1. 首先定义所有常量和工具函数
 const TimeRanges = {
-  EARLY_MORNING: { start: "05:00", end: "08:00" },
-  MORNING: { start: "08:00", end: "12:00" },
-  NOON: { start: "11:00", end: "13:00" },
-  AFTERNOON: { start: "13:00", end: "17:00" },
-  EVENING: { start: "17:00", end: "21:00" },
-  NIGHT: { start: "21:00", end: "23:00" },
-  LATE_NIGHT: { start: "23:00", end: "05:00" },
+  EARLY_MORNING: { start: 5, end: 8 },
+  MORNING: { start: 8, end: 12 },
+  NOON: { start: 11, end: 13 },
+  AFTERNOON: { start: 13, end: 17 },
+  EVENING: { start: 17, end: 21 },
+  NIGHT: { start: 21, end: 23 },
+  LATE_NIGHT: { start: 23, end: 5 },
 };
 
 // 工具函数
@@ -31,7 +32,7 @@ const Utils = {
 // 响应文本配置
 const ResponseConfig = {
   goodMorning: {
-    [TimeRanges.EARLY_MORNING.start]: [
+    EARLY_MORNING: [
       "嗨，新的一天开始啦！愿你充满活力，迎接新的冒险！",
       "清晨的鸟鸣和微风都在向你打招呼，早安！",
       "崭新的一天，充满希望和机会。祝你早安，愿你笑逐颜开！",
@@ -40,7 +41,7 @@ const ResponseConfig = {
       "早安！太阳已经为你打点好了一切，准备好开始了吗？",
       "芝兰生于幽谷，不以无人而不芳。早安，愿你如兰般芬芳！",
     ],
-    [TimeRanges.MORNING.start]: [
+    MORNING: [
       "早上好！虽然有点晚，但愿你的笑容早早闪亮起来！",
       "都这个点了还说早安，是不是想多享受一会儿被窝的温暖？",
       "阳光已经照进窗子啦，起床太阳晒屁股了哦！",
@@ -61,7 +62,7 @@ const ResponseConfig = {
   },
 
   goodNoon: {
-    [TimeRanges.NOON.start]: [
+    NOON: [
       "午安！是时候享用美味的午餐了！",
       "阳光正好，微风不燥，午安安！",
       "中午好！记得午休哦，补充能量才能继续奋斗！",
@@ -70,7 +71,7 @@ const ResponseConfig = {
       "阳光正当头，别忘了午休哦！",
       "忙碌的上午过去了，来享受午后时光吧！",
     ],
-    [TimeRanges.AFTERNOON.start]: [
+    AFTERNOON: [
       "这个点说午安，是不是刚睡醒呀？",
       "下午好！你的午安来得有点晚啦！",
       "午安？太阳都偏西了呢～",
@@ -91,7 +92,7 @@ const ResponseConfig = {
   },
 
   goodEvening: {
-    [TimeRanges.EVENING.start]: [
+    EVENING: [
       "晚上好！夜色温柔，愿你心情愉快！",
       "忙碌了一天，是时候放松一下啦！",
       "晚上好！愿你的夜晚充满温馨！",
@@ -100,7 +101,7 @@ const ResponseConfig = {
       "星星已经迫不及待想见你，晚上好！",
       "夜晚的美好才刚刚开始，晚上好！",
     ],
-    [TimeRanges.NIGHT.start]: [
+    NIGHT: [
       "夜深了，记得早点休息哦！",
       "晚上好！不过已经该准备睡觉啦！",
       "夜已深，愿你梦里有温暖的月光！",
@@ -121,7 +122,7 @@ const ResponseConfig = {
   },
 
   goodNight: {
-    [TimeRanges.NIGHT.start]: [
+    NIGHT: [
       "晚安！愿你有个甜美的梦！",
       "夜深了，愿你睡个好觉！",
       "晚安！明天见，好梦！",
@@ -130,7 +131,7 @@ const ResponseConfig = {
       "让温柔的夜色陪你入眠，晚安！",
       "星星会守护你的梦，晚安！",
     ],
-    [TimeRanges.LATE_NIGHT.start]: [
+    LATE_NIGHT: [
       "这么晚还不睡觉，是有心事吗？",
       "熬夜可不好哦，快去休息吧！",
       "月亮都累了，你也该睡了！",
