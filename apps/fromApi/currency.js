@@ -105,7 +105,7 @@ export class ExchangeRatePlugin extends plugin {
 
 let groupnumber_list = ["103382278"];
 let url_aud = "https://api.433200.xyz/api/exchange_rate?currency1=AUD";
-schedule.scheduleJob("0 0/1 * * * ?", async () => {
+schedule.scheduleJob("0 0 9 * * ?", async () => {
   console.log("澳币汇率");
   for (var i = 0; i < groupnumber_list.length; i++) {
     let group = Bot.pickGroup(groupnumber_list[i]);
