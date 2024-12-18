@@ -1,12 +1,11 @@
-// 1. 首先定义所有常量和工具函数
 const TimeRanges = {
-  EARLY_MORNING: { start: 5, end: 8 },
-  MORNING: { start: 8, end: 12 },
-  NOON: { start: 11, end: 13 },
-  AFTERNOON: { start: 13, end: 17 },
-  EVENING: { start: 17, end: 21 },
-  NIGHT: { start: 21, end: 23 },
-  LATE_NIGHT: { start: 23, end: 5 },
+  EARLY_MORNING: { start: "05:00", end: "08:00" },
+  MORNING: { start: "08:00", end: "12:00" },
+  NOON: { start: "11:00", end: "13:00" },
+  AFTERNOON: { start: "13:00", end: "17:00" },
+  EVENING: { start: "17:00", end: "21:00" },
+  NIGHT: { start: "21:00", end: "23:00" },
+  LATE_NIGHT: { start: "23:00", end: "05:00" },
 };
 
 // 工具函数
