@@ -154,7 +154,7 @@ const Utils = {
 };
 
 // 问候处理类
-export class Greetings extends Plugin {
+export class Greetings extends plugin {
   constructor() {
     super({
       name: "每日问候",
