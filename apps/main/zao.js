@@ -1,4 +1,4 @@
-// 时间区间配置，使用24小时制统一格式
+// 1. 首先定义所有常量和工具函数
 const TimeRanges = {
   EARLY_MORNING: { start: 5, end: 8 },
   MORNING: { start: 8, end: 12 },
@@ -7,6 +7,26 @@ const TimeRanges = {
   EVENING: { start: 17, end: 21 },
   NIGHT: { start: 21, end: 23 },
   LATE_NIGHT: { start: 23, end: 5 },
+};
+
+// 工具函数
+const Utils = {
+  getCurrentHour: () => new Date().getHours(),
+
+  getTimeRange(hour) {
+    for (const [range, { start, end }] of Object.entries(TimeRanges)) {
+      if (end > start) {
+        if (hour >= start && hour < end) return range;
+      } else {
+        if (hour >= start || hour < end) return range;
+      }
+    }
+    return "default";
+  },
+
+  getRandomResponse: (responses) => {
+    return responses[Math.floor(Math.random() * responses.length)];
+  },
 };
 
 // 响应文本配置
@@ -132,7 +152,7 @@ const ResponseConfig = {
   },
 };
 
-// 问候处理类
+// 导出问候类
 export class Greetings extends plugin {
   constructor() {
     super({
@@ -141,52 +161,41 @@ export class Greetings extends plugin {
       priority: 100,
       rule: [
         {
-          reg: "^([#/])?(早安|早上好|早安丫|早|早早|早早早)$",
+          reg: /^([#/])?(早安|早上好|早安丫|早|早早|早早早)$/,
           fnc: "handleGreeting",
           params: ["goodMorning"],
         },
         {
-          reg: "^([#/])?(午安|午好|中午好|午安丫)$",
+          reg: /^([#/])?(午安|午好|中午好|午安丫)$/,
           fnc: "handleGreeting",
           params: ["goodNoon"],
         },
         {
-          reg: "^([#/])?(下午好|晚上好)$",
+          reg: /^([#/])?(下午好|晚上好)$/,
           fnc: "handleGreeting",
           params: ["goodEvening"],
         },
         {
-          reg: "^([#/])?(晚安|晚安丫|晚安安|晚安晚安|安|安安)$",
+          reg: /^([#/])?(晚安|晚安丫|晚安安|晚安晚安|安|安安)$/,
           fnc: "handleGreeting",
           params: ["goodNight"],
         },
       ],
     });
-    this.timeRanges = TimeRanges;
   }
 
   async handleGreeting(e, greetingType) {
     try {
-      const currentHour = new Date().getHours();
-      // 使用 this.timeRanges 而不是直接使用 TimeRanges
-      let timeRange = "default";
+      console.log("[每日问候] 开始处理消息");
+      console.log("[每日问候] 问候类型:", greetingType);
 
-      // 根据当前小时确定时间范围
-      for (const [range, { start, end }] of Object.entries(this.timeRanges)) {
-        if (end > start) {
-          if (currentHour >= start && currentHour < end) {
-            timeRange = range;
-            break;
-          }
-        } else {
-          // 处理跨天的情况，如 23:00-5:00
-          if (currentHour >= start || currentHour < end) {
-            timeRange = range;
-            break;
-          }
-        }
-      }
+      const currentHour = Utils.getCurrentHour();
+      console.log("[每日问候] 当前时间:", currentHour);
 
+      const timeRange = Utils.getTimeRange(currentHour);
+      console.log("[每日问候] 时间范围:", timeRange);
+
+      // 修改这里的逻辑，直接使用 timeRange
       const responses =
         ResponseConfig[greetingType][timeRange] ||
         ResponseConfig[greetingType].default;
@@ -198,11 +207,14 @@ export class Greetings extends plugin {
         return false;
       }
 
-      const response = responses[Math.floor(Math.random() * responses.length)];
+      const response = Utils.getRandomResponse(responses);
+      console.log("[每日问候] 选择的回复:", response);
+
       await e.reply(response, true);
       return true;
     } catch (error) {
       console.error("[每日问候] 处理出错:", error);
+      console.error("[每日问候] 错误详情:", error.stack);
       return false;
     }
   }
