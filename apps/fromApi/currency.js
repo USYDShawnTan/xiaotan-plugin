@@ -1,3 +1,4 @@
+import schedule from "node-schedule";
 import fetch from "node-fetch";
 import { currencyMap } from "../../resources/data/currency_map.js";
 
