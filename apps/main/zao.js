@@ -152,7 +152,6 @@ const ResponseConfig = {
   },
 };
 
-// 导出问候类
 export class Greetings extends plugin {
   constructor() {
     super({
@@ -162,32 +161,54 @@ export class Greetings extends plugin {
       rule: [
         {
           reg: /^([#/])?(早安|早上好|早安丫|早|早早|早早早)$/,
-          fnc: "handleGreeting",
-          params: ["goodMorning"],
+          fnc: "handleGreetingMorning",
         },
         {
           reg: /^([#/])?(午安|午好|中午好|午安丫)$/,
-          fnc: "handleGreeting",
-          params: ["goodNoon"],
+          fnc: "handleGreetingNoon",
         },
         {
-          reg: /^([#/])?(下午好|晚上好)$/,
-          fnc: "handleGreeting",
-          params: ["goodEvening"],
+          reg: /^([#/])?(下午好|晚上好)$/i,
+          fnc: "handleGreetingEvening",
         },
         {
           reg: /^([#/])?(晚安|晚安丫|晚安安|晚安晚安|安|安安)$/,
-          fnc: "handleGreeting",
-          params: ["goodNight"],
+          fnc: "handleGreetingNight",
         },
       ],
     });
   }
 
+  // 处理早安问候
+  async handleGreetingMorning(e) {
+    return await this.handleGreeting(e, "goodMorning");
+  }
+
+  // 处理午安问候
+  async handleGreetingNoon(e) {
+    return await this.handleGreeting(e, "goodNoon");
+  }
+
+  // 处理晚上好问候
+  async handleGreetingEvening(e) {
+    return await this.handleGreeting(e, "goodEvening");
+  }
+
+  // 处理晚安问候
+  async handleGreetingNight(e) {
+    return await this.handleGreeting(e, "goodNight");
+  }
+
+  // 通用的问候处理方法
   async handleGreeting(e, greetingType) {
     try {
       console.log("[每日问候] 开始处理消息");
       console.log("[每日问候] 问候类型:", greetingType);
+
+      if (!greetingType) {
+        console.error("[每日问候] 没有传递有效的问候类型！");
+        return false;
+      }
 
       const currentHour = Utils.getCurrentHour();
       console.log("[每日问候] 当前时间:", currentHour);
@@ -195,7 +216,6 @@ export class Greetings extends plugin {
       const timeRange = Utils.getTimeRange(currentHour);
       console.log("[每日问候] 时间范围:", timeRange);
 
-      // 修改这里的逻辑，直接使用 timeRange
       const responses =
         ResponseConfig[greetingType][timeRange] ||
         ResponseConfig[greetingType].default;
