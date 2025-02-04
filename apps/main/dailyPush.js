@@ -28,7 +28,7 @@ export class DailyPush extends plugin {
     this.pushTypes = {
       新闻: "NEWS",
       狮子座运势: "LEO",
-      澳币: "AUD", // 新增澳币汇率推送类型
+      澳币汇率: "AUD", // 新增澳币汇率推送类型
     };
 
     this.newsUrl = "https://api.jun.la/60s.php?format=image";
@@ -49,11 +49,21 @@ export class DailyPush extends plugin {
 
     // 晚间提醒 (0:00)
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
+
+    // 测试（每分钟）
+    schedule.scheduleJob("* * * * *", () => this.test());
+  }
+
+  // 测试
+  async test() {
+    logger.info("测试");
+    await PushManager.sendGroupMsg("NEWS", "测试");
   }
 
   // 早间新闻推送
   async morningNews() {
     logger.info("推送早间新闻");
+
     await PushManager.sendGroupMsg("NEWS", "☀️早上好~\n📰今日新闻已送达", {
       image: this.newsUrl,
     });

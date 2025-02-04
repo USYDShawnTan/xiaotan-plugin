@@ -2,32 +2,12 @@ class PushManager {
   constructor() {
     this.REDIS_KEYS = {
       PREFIX: "Yunz:push:",
-      TYPES: new Proxy(
-        {
-          NEWS: "news",
-          LOTTERY: "lottery",
-          NOTICE: "notice",
-          LEO: "leo",
-          AUD: "aud",
-        },
-        {
-          get: function (obj, prop) {
-            // 如果类型不存在，自动转换为小写作为key
-            return obj[prop] || prop.toLowerCase();
-          },
-        }
-      ),
     };
   }
 
   // 获取Redis key
   getRedisKey(type) {
-    if (!this.REDIS_KEYS.TYPES[type.toUpperCase()]) {
-      throw new Error(`Invalid push type: ${type}`);
-    }
-    return `${this.REDIS_KEYS.PREFIX}${
-      this.REDIS_KEYS.TYPES[type.toUpperCase()]
-    }:groups`;
+    return `${this.REDIS_KEYS.PREFIX}${type.toLowerCase()}:groups`;
   }
 
   // 获取推送群组列表
