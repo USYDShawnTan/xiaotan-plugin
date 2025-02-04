@@ -11,17 +11,25 @@ export class DailyPush extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: "^#?(添加|删除)(新闻|狮子座运势)推送群(.*)$",
+          reg: "^#?(添加|删除)(.+)推送群(.*)$",
           fnc: "managePushGroup",
           permission: "master",
         },
         {
-          reg: "^#?(新闻|狮子座运势)推送群列表$",
+          reg: "^#?(.+)推送群列表$",
           fnc: "listPushGroups",
           permission: "master",
         },
       ],
     });
+
+    // 推送类型配置
+    this.pushTypes = {
+      新闻: "NEWS",
+      狮子座运势: "LEO",
+      // 在这里添加新的推送类型
+      // "xxx": "XXX",
+    };
 
     this.newsUrl = "https://api.jun.la/60s.php?format=image";
     this.horoscope = new HoroscopePlugin();
@@ -33,7 +41,7 @@ export class DailyPush extends plugin {
     schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
 
     // 狮子座运势 (7:00)
-    schedule.scheduleJob("0 0 8 * * ?", () => this.leoHoroscope());
+    schedule.scheduleJob("0 0 7 * * ?", () => this.leoHoroscope());
 
     // 晚间提醒 (0:00)
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
@@ -46,6 +54,7 @@ export class DailyPush extends plugin {
       image: this.newsUrl,
     });
   }
+
   // 模拟用户消息触发星座运势
   async leoHoroscope() {
     logger.info("推送狮子座运势");
@@ -64,6 +73,7 @@ export class DailyPush extends plugin {
       logger.error(`狮子座运势推送失败: ${err}`);
     }
   }
+
   // 晚间提醒
   async nightReminder() {
     logger.info("推送晚间提醒");
@@ -71,5 +81,67 @@ export class DailyPush extends plugin {
       "NEWS",
       "🌙晚安安群友们~新的一天开始啦，记得打卡喔~"
     );
+  }
+
+  // 管理推送群组
+  async managePushGroup(e) {
+    if (!e.isMaster) return false;
+
+    // 解析命令
+    const match = e.msg.match(/^#?(添加|删除)(.+)推送群(.*)$/);
+    if (!match) return false;
+
+    const [, action, typeName, groupId] = match;
+    const typeKey = this.pushTypes[typeName];
+
+    if (!typeKey) {
+      e.reply(
+        `未知的推送类型：${typeName}\n可用类型：${Object.keys(
+          this.pushTypes
+        ).join("、")}`
+      );
+      return true;
+    }
+
+    if (!groupId.trim()) {
+      e.reply("请指定群号");
+      return true;
+    }
+
+    const result =
+      action === "添加"
+        ? await PushManager.addGroup(typeKey, groupId.trim())
+        : await PushManager.removeGroup(typeKey, groupId.trim());
+
+    e.reply(result.message);
+    return true;
+  }
+
+  // 查看推送群列表
+  async listPushGroups(e) {
+    if (!e.isMaster) return false;
+
+    const match = e.msg.match(/^#?(.+)推送群列表$/);
+    if (!match) return false;
+
+    const typeName = match[1];
+    const typeKey = this.pushTypes[typeName];
+
+    if (!typeKey) {
+      e.reply(
+        `未知的推送类型：${typeName}\n可用类型：${Object.keys(
+          this.pushTypes
+        ).join("、")}`
+      );
+      return true;
+    }
+
+    const groups = await PushManager.getGroupList(typeKey);
+    if (groups.length === 0) {
+      e.reply(`当前没有${typeName}推送群`);
+    } else {
+      e.reply(`${typeName}推送群列表：\n` + groups.join("\n"));
+    }
+    return true;
   }
 }
