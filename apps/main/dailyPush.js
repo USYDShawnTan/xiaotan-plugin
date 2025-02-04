@@ -3,6 +3,10 @@ import PushManager from "../../model/pushManage.js";
 import { HoroscopePlugin } from "../fromApi/xzys.js";
 import fetch from "node-fetch";
 
+/**
+ * 定时推送服务插件
+ * 管理各种定时推送任务和群组订阅
+ */
 export class DailyPush extends plugin {
   constructor() {
     super({
@@ -12,31 +16,37 @@ export class DailyPush extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: "^#?(添加|删除)(.+)推送(.*)$",
+          reg: "^#?(添加|删除)(.+)推送群(.*)$",
           fnc: "managePushGroup",
           permission: "master",
         },
         {
-          reg: "^#?(.+)推送列表$",
+          reg: "^#?(.+)推送群列表$",
           fnc: "listPushGroups",
           permission: "master",
         },
       ],
     });
 
-    // 推送类型配置
+    // 推送类型配置：显示名称 -> Redis key映射
     this.pushTypes = {
       新闻: "NEWS",
       狮子座运势: "LEO",
-      澳币汇率: "AUD", // 新增澳币汇率推送类型
+      澳币汇率: "AUD",
     };
 
+    // API接口配置
     this.newsUrl = "https://api.jun.la/60s.php?format=image";
     this.audUrl = "https://api.433200.xyz/api/exchange_rate?currency1=AUD";
     this.horoscope = new HoroscopePlugin();
+
+    // 初始化定时任务
     this.initSchedule();
   }
 
+  /**
+   * 初始化所有定时推送任务
+   */
   initSchedule() {
     // 早间新闻 (8:00)
     schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
@@ -49,27 +59,21 @@ export class DailyPush extends plugin {
 
     // 晚间提醒 (0:00)
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
-
-    // 测试（每分钟）
-    schedule.scheduleJob("* * * * *", () => this.test());
   }
 
-  // 测试
-  async test() {
-    logger.info("测试");
-    await PushManager.sendGroupMsg("NEWS", "测试");
-  }
-
-  // 早间新闻推送
+  /**
+   * 早间新闻推送
+   */
   async morningNews() {
     logger.info("推送早间新闻");
-
     await PushManager.sendGroupMsg("NEWS", "☀️早上好~\n📰今日新闻已送达", {
       image: this.newsUrl,
     });
   }
 
-  // 模拟用户消息触发星座运势
+  /**
+   * 狮子座运势推送
+   */
   async leoHoroscope() {
     logger.info("推送狮子座运势");
     try {
@@ -88,7 +92,9 @@ export class DailyPush extends plugin {
     }
   }
 
-  // 澳币汇率推送
+  /**
+   * 澳币汇率推送
+   */
   async audExchangeRate() {
     logger.info("推送澳币汇率");
     try {
@@ -117,7 +123,9 @@ export class DailyPush extends plugin {
     }
   }
 
-  // 晚间提醒
+  /**
+   * 晚间提醒推送
+   */
   async nightReminder() {
     logger.info("推送晚间提醒");
     await PushManager.sendGroupMsg(
@@ -126,7 +134,10 @@ export class DailyPush extends plugin {
     );
   }
 
-  // 管理推送群组
+  /**
+   * 管理推送群组
+   * @param {*} e - 消息事件对象
+   */
   async managePushGroup(e) {
     if (!e.isMaster) return false;
 
@@ -160,7 +171,10 @@ export class DailyPush extends plugin {
     return true;
   }
 
-  // 查看推送群列表
+  /**
+   * 查看推送群列表
+   * @param {*} e - 消息事件对象
+   */
   async listPushGroups(e) {
     if (!e.isMaster) return false;
 

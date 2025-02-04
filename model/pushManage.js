@@ -1,16 +1,29 @@
+/**
+ * 推送管理类
+ * 负责管理群组推送的Redis存储和消息发送
+ */
 class PushManager {
   constructor() {
+    // Redis key前缀配置
     this.REDIS_KEYS = {
-      PREFIX: "Yunz:push:",
+      PREFIX: "Yunz:push:", // 统一的Redis key前缀
     };
   }
 
-  // 获取Redis key
+  /**
+   * 生成Redis存储key
+   * @param {string} type - 推送类型（如NEWS、LEO等）
+   * @returns {string} 完整的Redis key
+   */
   getRedisKey(type) {
     return `${this.REDIS_KEYS.PREFIX}${type.toLowerCase()}:groups`;
   }
 
-  // 获取推送群组列表
+  /**
+   * 获取指定类型的推送群组列表
+   * @param {string} type - 推送类型
+   * @returns {Promise<string[]>} 群组ID列表
+   */
   async getGroupList(type) {
     try {
       const key = this.getRedisKey(type);
@@ -22,7 +35,12 @@ class PushManager {
     }
   }
 
-  // 保存推送群组列表
+  /**
+   * 保存推送群组列表
+   * @param {string} type - 推送类型
+   * @param {string[]} groups - 群组ID列表
+   * @returns {Promise<boolean>} 保存结果
+   */
   async saveGroupList(type, groups) {
     try {
       const key = this.getRedisKey(type);
@@ -34,7 +52,12 @@ class PushManager {
     }
   }
 
-  // 添加推送群组
+  /**
+   * 添加推送群组
+   * @param {string} type - 推送类型
+   * @param {string} groupId - 群组ID
+   * @returns {Promise<{success: boolean, message: string}>} 操作结果
+   */
   async addGroup(type, groupId) {
     try {
       let groups = await this.getGroupList(type);
@@ -50,7 +73,12 @@ class PushManager {
     }
   }
 
-  // 删除推送群组
+  /**
+   * 删除推送群组
+   * @param {string} type - 推送类型
+   * @param {string} groupId - 群组ID
+   * @returns {Promise<{success: boolean, message: string}>} 操作结果
+   */
   async removeGroup(type, groupId) {
     try {
       let groups = await this.getGroupList(type);
@@ -66,7 +94,13 @@ class PushManager {
     }
   }
 
-  // 发送推送消息
+  /**
+   * 发送群组消息
+   * @param {string} type - 推送类型
+   * @param {string} message - 消息内容
+   * @param {Object} options - 附加选项（如图片URL等）
+   * @returns {Promise<{success: string[], failed: Array}>} 发送结果
+   */
   async sendGroupMsg(type, message, options = {}) {
     const groups = await this.getGroupList(type);
     const results = {
@@ -82,10 +116,12 @@ class PushManager {
           continue;
         }
 
+        // 如果有图片选项，先发送图片
         if (options.image) {
           await group.sendMsg(segment.image(options.image));
         }
 
+        // 发送文本消息
         if (message) {
           await group.sendMsg(message);
         }
