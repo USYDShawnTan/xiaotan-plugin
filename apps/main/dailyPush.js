@@ -53,15 +53,20 @@ export class DailyPush extends plugin {
    */
   initSchedule() {
     logger.info("[DailyPush] 开始初始化定时任务");
-
+    // 常用的cron表达式：
+    // 每分钟 * * * * *
+    // 每5分钟 0 */5 * * * *
+    // 每小时 0 * * * *
+    // 每两小时 0 */2 * * * *
+    // 每天 0 0 * * *
     // 每日早安 (8:00)
     schedule.scheduleJob("0 0 8 * * *", () => this.morningNews());
 
     // 澳币汇率 (9:00)
-    schedule.scheduleJob("0 0 9 * * *", () => this.audExchangeRate());
+    schedule.scheduleJob("0 0 10 * * *", () => this.audExchangeRate());
 
     // 知乎热搜 (每3分钟)
-    schedule.scheduleJob("0 */3 * * * *", () => this.zhihuHotSearch());
+    schedule.scheduleJob("0 */2 * * * *", () => this.zhihuHotSearch());
 
     logger.info("[DailyPush] 定时任务初始化完成");
   }
