@@ -1,6 +1,7 @@
 import schedule from "node-schedule";
 import PushManager from "../../model/pushManage.js";
 import { HoroscopePlugin } from "../fromApi/xzys.js";
+import { ZhihuPlugin } from "../fromApi/zhihu.js";
 import fetch from "node-fetch";
 
 /**
@@ -33,6 +34,7 @@ export class DailyPush extends plugin {
       每日: "DAILY",
       运势: "LEO",
       澳币: "AUD",
+      知乎: "ZHIHU",
     };
 
     // API接口配置
@@ -44,15 +46,24 @@ export class DailyPush extends plugin {
     this.initSchedule();
   }
 
-  /**
-   * 初始化所有定时推送任务
-   */
   initSchedule() {
+    // 测试推送 corn 表达式每分钟"* * * * *"
+    // 每两分钟"*/2 * * * *"
+    // 每三分钟"*/3 * * * *"
+    // 每小时"0 * * * *"
+    // 每天"0 0 * * *"
+    // 每周"0 0 * * 1"
+    // 每月"0 0 1 * *"
+    // 每年"0 0 1 1 *"
+
     // 早间新闻 (8:00)
     schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
 
     // 狮子座运势 (7:00)
     //schedule.scheduleJob("0 0 7 * * ?", () => this.leoHoroscope());
+
+    // 知乎热搜 (10:00)
+    schedule.scheduleJob("*/3 * * * *", () => this.zhihuHotSearch());
 
     // 澳币汇率 (9:00)
     schedule.scheduleJob("0 0 9 * * ?", () => this.audExchangeRate());
@@ -61,29 +72,19 @@ export class DailyPush extends plugin {
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
   }
 
-  /**
-   * 早间新闻推送
-   */
+  //早间推送
   async morningNews() {
     logger.info("推送早间新闻");
-    await PushManager.sendGroupMsg("DAILY", "☀️早上好~\n📰今日新闻已送达", {
-      image: this.newsUrl,
-    });
+    await PushManager.sendGroupMsg("DAILY", "☀️早上好~");
   }
 
-  /**
-   * 晚间推送
-   */
+  //晚间推送
   async nightReminder() {
     logger.info("推送晚间提醒");
-    await PushManager.sendGroupMsg(
-      "DAILY",
-      "🌙晚安安群友们~新的一天开始啦，记得打卡喔~"
-    );
+    await PushManager.sendGroupMsg("DAILY", "🌙晚安安群友们~");
   }
-  /**
-   * 狮子座运势推送
-   */
+
+  //狮子座运势推送
   async leoHoroscope() {
     logger.info("推送狮子座运势");
     try {
@@ -94,7 +95,6 @@ export class DailyPush extends plugin {
           await PushManager.sendGroupMsg("LEO", msg);
         },
       };
-
       // 调用现有的星座运势功能
       await this.horoscope.getHoroscope(mockE);
     } catch (err) {
@@ -102,11 +102,27 @@ export class DailyPush extends plugin {
     }
   }
 
-  /**
-   * 澳币汇率推送
-   */
+  //知乎热搜推送
+  async zhihuHotSearch() {
+    logger.info("推送知乎热搜");
+    try {
+      // 创建模拟消息对象
+      const mockE = {
+        msg: "知乎热搜",
+        reply: async (msg) => {
+          await PushManager.sendGroupMsg("ZHIHU", msg);
+        },
+      };
+      await this.zhihu.getHotSearch(mockE);
+    } catch (err) {
+      logger.error(`知乎热搜推送失败: ${err}`);
+    }
+  }
+
+  //澳币汇率推送
   async audExchangeRate() {
     logger.info("推送澳币汇率");
+
     try {
       const response = await fetch(this.audUrl);
       const data = await response.json();
