@@ -41,7 +41,7 @@ export class DailyPush extends plugin {
     schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
 
     // 狮子座运势 (7:00)
-    schedule.scheduleJob("* * * * *", () => this.leoHoroscope());
+    //schedule.scheduleJob("0 0 7 * * ?", () => this.leoHoroscope());
 
     // 晚间提醒 (0:00)
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
