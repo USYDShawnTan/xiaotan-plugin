@@ -28,7 +28,7 @@ export class DailyPush extends plugin {
     this.pushTypes = {
       新闻: "NEWS",
       狮子座运势: "LEO",
-      澳币汇率: "AUD", // 新增澳币汇率推送类型
+      澳币: "AUD", // 新增澳币汇率推送类型
     };
 
     this.newsUrl = "https://api.jun.la/60s.php?format=image";

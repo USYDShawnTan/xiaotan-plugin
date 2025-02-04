@@ -2,12 +2,21 @@ class PushManager {
   constructor() {
     this.REDIS_KEYS = {
       PREFIX: "Yunz:push:",
-      TYPES: {
-        NEWS: "news",
-        LOTTERY: "lottery",
-        NOTICE: "notice",
-        LEO: "leo",
-      },
+      TYPES: new Proxy(
+        {
+          NEWS: "news",
+          LOTTERY: "lottery",
+          NOTICE: "notice",
+          LEO: "leo",
+          AUD: "aud",
+        },
+        {
+          get: function (obj, prop) {
+            // 如果类型不存在，自动转换为小写作为key
+            return obj[prop] || prop.toLowerCase();
+          },
+        }
+      ),
     };
   }
 
