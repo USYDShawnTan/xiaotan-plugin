@@ -103,18 +103,29 @@ export class DailyPush extends plugin {
     }
   }
 
-  //知乎热搜推送
+  /**
+   * 知乎热搜推送
+   */
   async zhihuHotSearch() {
     logger.info("推送知乎热搜");
     try {
-      // 创建模拟消息对象
+      // 创建模拟消息对象，但不直接发送消息
       const mockE = {
         msg: "热搜",
         reply: async (msg) => {
-          await PushManager.sendGroupMsg("ZHIHU", msg);
+          // 存储消息内容，而不是直接发送
+          this.tempMessage = msg;
         },
       };
+
+      // 获取热搜内容
       await this.zhihu.getHotSearch(mockE);
+
+      // 只发送一次消息到所有订阅群
+      if (this.tempMessage) {
+        await PushManager.sendGroupMsg("ZHIHU", this.tempMessage);
+        this.tempMessage = null; // 清除临时消息
+      }
     } catch (err) {
       logger.error(`知乎热搜推送失败: ${err}`);
     }
