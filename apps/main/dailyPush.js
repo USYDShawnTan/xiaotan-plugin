@@ -109,7 +109,7 @@ export class DailyPush extends plugin {
     try {
       // 创建模拟消息对象
       const mockE = {
-        msg: "知乎热搜",
+        msg: "热搜",
         reply: async (msg) => {
           await PushManager.sendGroupMsg("ZHIHU", msg);
         },

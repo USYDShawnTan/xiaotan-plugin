@@ -1,8 +1,7 @@
 import fetch from "node-fetch";
 import common from "../../../../lib/common/common.js";
 
-
-export class example extends plugin {
+export class ZhihuPlugin extends plugin {
   constructor() {
     super({
       name: "热搜",
@@ -11,7 +10,7 @@ export class example extends plugin {
       priority: 10086,
       rule: [
         {
-          reg: "热搜",
+          reg: "^#?热搜$",
           fnc: "getHotSearch",
         },
       ],
@@ -30,10 +29,15 @@ export class example extends plugin {
 
       const forwardMessages = [];
 
-     // 将 UTC 时间转换为北京时间
-      const updateTimeUtc = new Date(data.update_time.replace(' ', 'T') + 'Z');
-      const updateTimeBeijing = new Date(updateTimeUtc.getTime() + 8 * 60 * 60 * 1000);
-      const formattedUpdateTime = updateTimeBeijing.toISOString().replace('T', ' ').substring(0, 19);
+      // 将 UTC 时间转换为北京时间
+      const updateTimeUtc = new Date(data.update_time.replace(" ", "T") + "Z");
+      const updateTimeBeijing = new Date(
+        updateTimeUtc.getTime() + 8 * 60 * 60 * 1000
+      );
+      const formattedUpdateTime = updateTimeBeijing
+        .toISOString()
+        .replace("T", " ")
+        .substring(0, 19);
 
       // 第一条消息，添加更新时间信息
       forwardMessages.push("获取到知乎热搜如下：");
@@ -46,7 +50,7 @@ export class example extends plugin {
         if (item.pic) {
           forwardMessages.push(segment.image(item.pic));
         }
-        const msg2 = `${item.desc}\n🔥${item.hot}🔥\n${item.url}`
+        const msg2 = `${item.desc}\n🔥${item.hot}🔥\n${item.url}`;
         forwardMessages.push(msg2);
         // 每隔一条发送一个分界线
         if (index < 8) {
