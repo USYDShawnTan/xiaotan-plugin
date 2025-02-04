@@ -67,6 +67,21 @@ export class DailyPush extends plugin {
 
     // 晚间提醒 (0:00)
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
+
+    // 知乎热搜定时任务
+    logger.info("初始化知乎热搜定时任务"); // 添加日志
+    const rule = new schedule.RecurrenceRule();
+    rule.minute = new schedule.Range(0, 59, 3);
+    rule.second = 0;
+
+    // 使用单个定时任务对象
+    if (this.zhihuJob) {
+      this.zhihuJob.cancel(); // 如果已存在，先取消旧的
+    }
+    this.zhihuJob = schedule.scheduleJob(rule, () => {
+      logger.info(`[${new Date().toLocaleString()}] 触发知乎热搜定时任务`);
+      this.zhihuHotSearch();
+    });
   }
 
   //早间推送
@@ -85,24 +100,23 @@ export class DailyPush extends plugin {
    * 知乎热搜推送
    */
   async zhihuHotSearch() {
-    logger.info("推送知乎热搜");
+    logger.info(`[${new Date().toLocaleString()}] 开始推送知乎热搜`);
     try {
-      let hasSent = false; // 添加标记，确保只发送一次
+      let callCount = 0;
 
-      // 创建模拟消息对象
       const mockE = {
         msg: "热搜",
         user_id: Bot.uin,
         reply: async (msg) => {
-          // 检查是否已发送
-          if (!hasSent) {
+          callCount++;
+          logger.info(`知乎热搜 reply 被调用第 ${callCount} 次`);
+
+          if (callCount === 1) {
             await PushManager.sendGroupMsg("ZHIHU", msg);
-            hasSent = true; // 标记为已发送
           }
         },
       };
 
-      // 调用知乎热搜功能
       await this.zhihu.getHotSearch(mockE);
     } catch (err) {
       logger.error(`知乎热搜推送失败: ${err}`);
