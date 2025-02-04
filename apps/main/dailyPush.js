@@ -60,7 +60,7 @@ export class DailyPush extends plugin {
     schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
 
     // 知乎热搜 (10:00)
-    schedule.scheduleJob("*/3 * * * *", () => this.zhihuHotSearch());
+    schedule.scheduleJob("*/2 * * * *", () => this.zhihuHotSearch());
 
     // 澳币汇率 (9:00)
     schedule.scheduleJob("0 0 9 * * ?", () => this.audExchangeRate());
@@ -87,13 +87,18 @@ export class DailyPush extends plugin {
   async zhihuHotSearch() {
     logger.info("推送知乎热搜");
     try {
+      let hasSent = false; // 添加标记，确保只发送一次
+
       // 创建模拟消息对象
       const mockE = {
         msg: "热搜",
         user_id: Bot.uin,
         reply: async (msg) => {
-          // 直接使用 PushManager 发送消息，不存储
-          await PushManager.sendGroupMsg("ZHIHU", msg);
+          // 检查是否已发送
+          if (!hasSent) {
+            await PushManager.sendGroupMsg("ZHIHU", msg);
+            hasSent = true; // 标记为已发送
+          }
         },
       };
 
