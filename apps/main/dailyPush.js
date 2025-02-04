@@ -4,6 +4,8 @@ import { HoroscopePlugin } from "../fromApi/xzys.js";
 import { ZhihuPlugin } from "../fromApi/zhihu.js";
 import fetch from "node-fetch";
 
+let instance = null;
+
 /**
  * 定时推送服务插件
  * 管理各种定时推送任务和群组订阅
@@ -29,11 +31,18 @@ export class DailyPush extends plugin {
       ],
     });
 
+    // 单例模式：如果实例已存在，直接返回
+    if (instance) {
+      return instance;
+    }
+    instance = this;
+
     // 推送类型配置：显示名称 -> Redis key映射
     this.pushTypes = {
-      每日: "DAILY",
-      澳币: "AUD",
-      知乎: "ZHIHU",
+      "新闻": "NEWS",
+      "狮子座运势": "LEO",
+      "澳币汇率": "AUD",
+      "知乎热搜": "ZHIHU",
     };
 
     // API接口配置
@@ -41,29 +50,49 @@ export class DailyPush extends plugin {
     this.audUrl = "https://api.433200.xyz/api/exchange_rate?currency1=AUD";
     this.horoscope = new HoroscopePlugin();
     this.zhihu = new ZhihuPlugin();
+
+    // 存储定时任务
+    this.scheduledJobs = new Map();
+
+    // 初始化定时任务
+    this.initSchedule();
+    logger.info('[DailyPush] 插件初始化完成');
   }
 
+  /**
+   * 初始化所有定时推送任务
+   */
   initSchedule() {
-    // 测试推送 corn 表达式每分钟"* * * * *"
-    // 每两分钟"*/2 * * * *"
-    // 每三分钟"*/3 * * * *"
-    // 每小时"0 * * * *"
-    // 每天"0 0 * * *"
-    // 每周"0 0 * * 1"
-    // 每月"0 0 1 * *"
-    // 每年"0 0 1 1 *"
+    logger.info('[DailyPush] 开始初始化定时任务');
+
+    // 清理旧的定时任务
+    this.scheduledJobs.forEach(job => job.cancel());
+    this.scheduledJobs.clear();
 
     // 早间新闻 (8:00)
-    schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
+    this.scheduledJobs.set('news', 
+      schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews())
+    );
 
-    // 知乎热搜 (10:00)
-    schedule.scheduleJob("*/2 * * * *", () => this.zhihuHotSearch());
+    // 狮子座运势 (7:00)
+    this.scheduledJobs.set('leo',
+      schedule.scheduleJob("0 0 7 * * ?", () => this.leoHoroscope())
+    );
 
     // 澳币汇率 (9:00)
-    schedule.scheduleJob("0 0 9 * * ?", () => this.audExchangeRate());
+    this.scheduledJobs.set('aud',
+      schedule.scheduleJob("0 0 9 * * ?", () => this.audExchangeRate())
+    );
 
-    // 晚间提醒 (0:00)
-    schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
+    // 知乎热搜 (每3分钟)
+    const zhihuRule = new schedule.RecurrenceRule();
+    zhihuRule.minute = new schedule.Range(0, 59, 3);
+    zhihuRule.second = 0;
+    this.scheduledJobs.set('zhihu',
+      schedule.scheduleJob(zhihuRule, () => this.zhihuHotSearch())
+    );
+
+    logger.info('[DailyPush] 定时任务初始化完成');
   }
 
   //早间推送
@@ -82,27 +111,24 @@ export class DailyPush extends plugin {
    * 知乎热搜推送
    */
   async zhihuHotSearch() {
-    logger.info("推送知乎热搜");
+    logger.info('[DailyPush] 开始推送知乎热搜');
     try {
-      let hasSent = false; // 添加标记，确保只发送一次
-
-      // 创建模拟消息对象
+      let callCount = 0;
+      
       const mockE = {
         msg: "热搜",
         user_id: Bot.uin,
         reply: async (msg) => {
-          // 检查是否已发送
-          if (!hasSent) {
+          callCount++;
+          if (callCount === 1) {
             await PushManager.sendGroupMsg("ZHIHU", msg);
-            hasSent = true; // 标记为已发送
           }
         },
       };
 
-      // 调用知乎热搜功能
       await this.zhihu.getHotSearch(mockE);
     } catch (err) {
-      logger.error(`知乎热搜推送失败: ${err}`);
+      logger.error(`[DailyPush] 知乎热搜推送失败: ${err}`);
     }
   }
 
