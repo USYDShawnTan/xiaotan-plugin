@@ -19,79 +19,112 @@ export class JrysPlugin extends plugin {
         },
       ],
     });
+
+    this.config = {
+      REDIS_KEY_PREFIX: "Yunz:JRYS:",
+      REGRET_COST: 5,
+      REDIS_EXPIRE_TIME: 86400, // 24小时过期
+    };
+  }
+
+  // 获取用户的 Redis key
+  getUserKey(userId) {
+    return `${this.config.REDIS_KEY_PREFIX}${userId}`;
+  }
+
+  // 获取新运势
+  async getNewFortune(now) {
+    const { fortuneData, message } = await Apis.jrys();
+    return { fortune: fortuneData, message, time: now };
   }
 
   async todayFortune(e) {
-    logger.mark(e.user_id);
-    const now = await Tools.date_time();
-    let userData = await redis.get(`Yunz:JRYS:${e.user_id}`);
+    try {
+      logger.mark(e.user_id);
+      const now = await Tools.date_time();
+      const redisKey = this.getUserKey(e.user_id);
 
-    let replymessage;
-    if (userData) {
-      userData = JSON.parse(userData);
-      const lastFortuneDatetime = userData.time;
+      let userData = await redis.get(redisKey).catch(() => null);
+      let replymessage;
 
-      // 如果用户已经有当天的运势,就使用已存储的数据
-      if (now === lastFortuneDatetime) {
-        replymessage = "今天已经抽过了喵,我去给你找找签:";
-        replymessage += userData.message;
-      } else {
-        // 否则随机抽取新的运势
-        let { fortuneData, message } = await Apis.jrys();
-        userData.fortune = fortuneData;
-        userData.message = message;
-        userData.time = now;
-        await redis.set(`Yunz:JRYS:${e.user_id}`, JSON.stringify(userData));
+      try {
+        if (!userData) {
+          userData = await this.getNewFortune(now);
+        } else {
+          userData = JSON.parse(userData);
+          if (now === userData.time) {
+            replymessage = "今天已经抽过了喵,我去给你找找签:";
+            replymessage += userData.message;
+            e.reply(replymessage, false, { at: true });
+            return true;
+          }
+          userData = await this.getNewFortune(now);
+        }
+
+        await redis.set(redisKey, JSON.stringify(userData), {
+          EX: this.config.REDIS_EXPIRE_TIME,
+        });
+
         replymessage = "让我看看你走的什么运:";
-        replymessage += message;
+        replymessage += userData.message;
+        e.reply(replymessage, false, { at: true });
+      } catch (err) {
+        logger.error(`运势获取失败: ${err}`);
+        e.reply("抱歉，运势获取失败了喵...", false, { at: true });
       }
-    } else {
-      // 如果用户没有运势记录,则新建一条
-      let { fortuneData, message } = await Apis.jrys();
-      let userData = { fortune: fortuneData, message: message, time: now };
-      await redis.set(`Yunz:JRYS:${e.user_id}`, JSON.stringify(userData));
-      replymessage = "让我看看你走的什么运:";
-      replymessage += message;
+    } catch (err) {
+      logger.error(`运势系统错误: ${err}`);
+      e.reply("系统遇到一些问题，请稍后再试喵...", false, { at: true });
     }
-
-    e.reply(replymessage, false, { at: true });
     return true;
   }
 
   async regretFortune(e) {
-    const regretCost = 5; // 悔签需要的金币数
-    let now = await Tools.date_time();
-    let userData = await redis.get(`Yunz:JRYS:${e.user_id}`);
+    try {
+      const now = await Tools.date_time();
+      const redisKey = this.getUserKey(e.user_id);
 
-    if (!userData) {
-      e.reply("您今天还没有抽过运势，无法悔签。");
-      return true;
+      let userData = await redis.get(redisKey).catch(() => null);
+
+      if (!userData) {
+        e.reply("您今天还没有抽过运势，无法悔签。", false, { at: true });
+        return true;
+      }
+
+      userData = JSON.parse(userData);
+      if (now !== userData.time) {
+        e.reply("您今天还没有抽过运势，无法悔签。", false, { at: true });
+        return true;
+      }
+
+      let result = await Tools.consumeCoins(e.user_id, this.config.REGRET_COST);
+      if (result.success) {
+        try {
+          userData = await this.getNewFortune(now);
+          await redis.set(redisKey, JSON.stringify(userData), {
+            EX: this.config.REDIS_EXPIRE_TIME,
+          });
+
+          let replymessage = `我！命！由！我！不！由！天！\n您消耗了${this.config.REGRET_COST}金币！剩余金币数：${result.totalCoins}\n改命结果：`;
+          replymessage += userData.message;
+          e.reply(replymessage, false, { at: true });
+        } catch (err) {
+          logger.error(`悔签获取新运势失败: ${err}`);
+          // 退还金币
+          await Tools.addCoins(e.user_id, this.config.REGRET_COST);
+          e.reply("悔签失败，已退还金币，请稍后再试...", false, { at: true });
+        }
+      } else {
+        e.reply(
+          `悔签失败喵~\n你没有足够的金币，需要${this.config.REGRET_COST}金币来悔签。\n当前金币数：${result.totalCoins}`,
+          false,
+          { at: true }
+        );
+      }
+    } catch (err) {
+      logger.error(`悔签系统错误: ${err}`);
+      e.reply("系统遇到一些问题，请稍后再试喵...", false, { at: true });
     }
-
-    userData = JSON.parse(userData);
-    if (now !== userData.time) {
-      e.reply("您今天还没有抽过运势，无法悔签。");
-      return true;
-    }
-
-    let result = await Tools.consumeCoins(e.user_id, regretCost);
-    if (result.success) {
-      let { fortuneData, message } = await Apis.jrys();
-      userData.fortune = fortuneData; // 更新运势
-      userData.message = message;
-
-      await redis.set(`Yunz:JRYS:${e.user_id}`, JSON.stringify(userData));
-      let replymessage = `我！命！由！我！不！由！天！\n您消耗了${regretCost}金币！剩余金币数：${result.totalCoins}\n改命结果：`;
-      replymessage += message;
-      e.reply(replymessage, false, { at: true });
-    } else {
-      e.reply(
-        `悔签失败喵~\n你没有足够的金币，需要${regretCost}金币来悔签。\n当前金币数：${result.totalCoins}`,
-        false,
-        { at: true }
-      );
-    }
-
     return true;
   }
 }
