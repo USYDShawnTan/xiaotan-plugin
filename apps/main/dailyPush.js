@@ -56,8 +56,8 @@ export class DailyPush extends plugin {
     // 常用的cron表达式：
     // 每分钟 * * * * *
     // 每5分钟 0 */5 * * * *
-    // 每小时 0 * * * *
-    // 每两小时 0 */2 * * * *
+    // 每小时 0 * * * * ?
+    // 每两小时 0 0 */2 * * ?
     // 每天 0 0 * * *
     // 每日早安 (8:00)
     schedule.scheduleJob("0 0 8 * * *", () => this.morningNews());
@@ -65,8 +65,8 @@ export class DailyPush extends plugin {
     // 澳币汇率 (9:00)
     schedule.scheduleJob("0 0 10 * * *", () => this.audExchangeRate());
 
-    // 知乎热搜 (每3分钟)
-    schedule.scheduleJob("0 */2 * * * *", () => this.zhihuHotSearch());
+    // 知乎热搜 (每两小时)
+    schedule.scheduleJob("0 0 */2 * * ?", () => this.zhihuHotSearch());
 
     logger.info("[DailyPush] 定时任务初始化完成");
   }
