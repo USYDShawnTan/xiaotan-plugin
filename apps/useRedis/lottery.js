@@ -9,27 +9,27 @@ export class LotteryPlugin extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: "^#购买彩票(.*)$",
+          reg: "^购买彩票(.*)$",
           fnc: "buyLottery",
         },
         {
-          reg: "^(#出卖彩票|#出售彩票|#售出彩票|#卖彩票)$",
+          reg: "^(出卖彩票|出售彩票|售出彩票|卖彩票)$",
           fnc: "sellLottery",
         },
         {
-          reg: "^#彩票开奖$",
+          reg: "^彩票开奖$",
           fnc: "draw",
         },
         {
-          reg: "^#彩票历史$",
+          reg: "^彩票历史$",
           fnc: "lotteryHistory",
         },
         {
-          reg: "^#我的历史$",
+          reg: "^我的历史$",
           fnc: "myHistory",
         },
         {
-          reg: "^#我的彩票$",
+          reg: "^我的彩票$",
           fnc: "myLottery",
         },
       ],
