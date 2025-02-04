@@ -1,6 +1,7 @@
 import schedule from "node-schedule";
 import PushManager from "../../model/pushManage.js";
 import { HoroscopePlugin } from "../fromApi/xzys.js";
+import fetch from "node-fetch";
 
 export class DailyPush extends plugin {
   constructor() {
@@ -11,12 +12,12 @@ export class DailyPush extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: "^#?(添加|删除)(.+)推送群(.*)$",
+          reg: "^#?(添加|删除)(.+)推送(.*)$",
           fnc: "managePushGroup",
           permission: "master",
         },
         {
-          reg: "^#?(.+)推送群列表$",
+          reg: "^#?(.+)推送列表$",
           fnc: "listPushGroups",
           permission: "master",
         },
@@ -27,11 +28,11 @@ export class DailyPush extends plugin {
     this.pushTypes = {
       新闻: "NEWS",
       狮子座运势: "LEO",
-      // 在这里添加新的推送类型
-      // "xxx": "XXX",
+      澳币汇率: "AUD", // 新增澳币汇率推送类型
     };
 
     this.newsUrl = "https://api.jun.la/60s.php?format=image";
+    this.audUrl = "https://api.433200.xyz/api/exchange_rate?currency1=AUD";
     this.horoscope = new HoroscopePlugin();
     this.initSchedule();
   }
@@ -42,6 +43,9 @@ export class DailyPush extends plugin {
 
     // 狮子座运势 (7:00)
     //schedule.scheduleJob("0 0 7 * * ?", () => this.leoHoroscope());
+
+    // 澳币汇率 (9:00)
+    schedule.scheduleJob("0 0 9 * * ?", () => this.audExchangeRate());
 
     // 晚间提醒 (0:00)
     schedule.scheduleJob("0 0 0 * * ?", () => this.nightReminder());
@@ -71,6 +75,35 @@ export class DailyPush extends plugin {
       await this.horoscope.getHoroscope(mockE);
     } catch (err) {
       logger.error(`狮子座运势推送失败: ${err}`);
+    }
+  }
+
+  // 澳币汇率推送
+  async audExchangeRate() {
+    logger.info("推送澳币汇率");
+    try {
+      const response = await fetch(this.audUrl);
+      const data = await response.json();
+
+      if (data && data.conversion_rates) {
+        const cnyRate = data.conversion_rates.CNY;
+        if (cnyRate) {
+          const message = `🇦🇺 澳币汇率: ${cnyRate.rate} CNY`;
+          await PushManager.sendGroupMsg("AUD", message);
+        } else {
+          logger.error("未找到人民币汇率信息");
+          await PushManager.sendGroupMsg(
+            "AUD",
+            "未找到人民币 (CNY) 的汇率信息"
+          );
+        }
+      } else {
+        logger.error("获取汇率数据失败");
+        await PushManager.sendGroupMsg("AUD", "获取汇率数据失败，请稍后再试");
+      }
+    } catch (err) {
+      logger.error(`澳币汇率推送失败: ${err}`);
+      await PushManager.sendGroupMsg("AUD", "汇率数据获取失败，请稍后再试");
     }
   }
 
