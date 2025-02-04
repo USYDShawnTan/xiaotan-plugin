@@ -2,8 +2,27 @@ import fsPromises from "fs/promises";
 
 class Tools {
   constructor() {
-    this.initHungerIncrease();
+    // Redis key 前缀配置
+    this.REDIS_KEYS = {
+      PREFIX: "Yunz:",
+      TYPES: {
+        COIN: "coin",
+        STICK: "stick",
+        JRYS: "jrys",
+      },
+    };
   }
+
+  // Redis key 生成器
+  getRedisKey(type, userId) {
+    if (!this.REDIS_KEYS.TYPES[type.toUpperCase()]) {
+      throw new Error(`Invalid Redis key type: ${type}`);
+    }
+    return `${this.REDIS_KEYS.PREFIX}${
+      this.REDIS_KEYS.TYPES[type.toUpperCase()]
+    }:${userId}`;
+  }
+
   // 获取当前日期
   async date_time() {
     const today = new Date();
@@ -12,7 +31,7 @@ class Tools {
 
   // 获取当前金币总数
   async getCoins(userId) {
-    let totalCoins = await redis.get(`Yunz:coin:${userId}`);
+    let totalCoins = await redis.get(this.getRedisKey("COIN", userId));
     return totalCoins ? parseInt(totalCoins) : 0;
   }
 
@@ -20,7 +39,7 @@ class Tools {
   async addCoins(userId, coins) {
     let totalCoins = await this.getCoins(userId);
     totalCoins += coins;
-    await redis.set(`Yunz:coin:${userId}`, totalCoins.toString());
+    await redis.set(this.getRedisKey("COIN", userId), totalCoins.toString());
     return totalCoins;
   }
 
@@ -29,7 +48,7 @@ class Tools {
     let totalCoins = await this.getCoins(userId);
     if (totalCoins >= coins) {
       totalCoins -= coins;
-      await redis.set(`Yunz:coin:${userId}`, totalCoins.toString());
+      await redis.set(this.getRedisKey("COIN", userId), totalCoins.toString());
       return { success: true, totalCoins };
     }
     return { success: false, totalCoins };
@@ -48,15 +67,18 @@ class Tools {
 
   // 获取用户金箍棒的长度
   async getStickLength(userId) {
-    let length = await redis.get(`Yunz:Stick:${userId}`);
-    return length ? parseFloat(length) : null; // 如果没有值返回null，并将其转换为浮点数
+    let length = await redis.get(this.getRedisKey("STICK", userId));
+    return length ? parseFloat(length) : null;
   }
 
   // 设置金箍棒的初始长度
   async initStickLength(userId, length = null) {
     const initialLength =
-      length !== null ? length : Math.floor(Math.random() * 18) + 3; // 设置3到20之间的随机长度
-    await redis.set(`Yunz:Stick:${userId}`, initialLength.toString());
+      length !== null ? length : Math.floor(Math.random() * 18) + 3;
+    await redis.set(
+      this.getRedisKey("STICK", userId),
+      initialLength.toString()
+    );
     return initialLength;
   }
 
@@ -67,87 +89,12 @@ class Tools {
       throw new Error("用户还没有领养金箍棒");
     }
     currentLength += length;
-    await redis.set(`Yunz:Stick:${userId}`, currentLength.toString());
+    await redis.set(
+      this.getRedisKey("STICK", userId),
+      currentLength.toString()
+    );
     return currentLength;
   }
-  // 获取所有用户ID
-  async getAllUserIds() {
-    const keys = await redis.keys("Yunz:Game:*");
-    return keys.map((key) => key.replace("Yunz:Game:", ""));
-  }
-
-  // 初始化定时器，每分钟增加一次饥饿值
-  initHungerIncrease() {
-    setInterval(() => {
-      this.increaseHungerForAllUsers().catch(console.error);
-    }, 60 * 1000); // 每分钟
-  }
-
-  // 每分钟增加所有用户的饥饿值
-  async increaseHungerForAllUsers() {
-    const userIds = await this.getAllUserIds();
-    for (const userId of userIds) {
-      await this.addHunger(userId, 1);
-    }
-  }
-
-  // 获取游戏数据
-  async getGameData(userId) {
-    const data = await redis.get(`Yunz:Game:${userId}`);
-    return data ? JSON.parse(data) : { hunger: 20, stones: 0, area: 0 };
-  }
-
-  // 设置游戏数据
-  async setGameData(userId, data) {
-    await redis.set(`Yunz:Game:${userId}`, JSON.stringify(data));
-  }
-
-  // 获取当前饥饿值
-  async getHunger(userId) {
-    const data = await this.getGameData(userId);
-    return data.hunger;
-  }
-
-  // 增加或减少饥饿值
-  async addHunger(userId, value) {
-    const data = await this.getGameData(userId);
-    data.hunger += value;
-    if (data.hunger > 20) data.hunger = 20;
-    if (data.hunger < 0) data.hunger = 0;
-    await this.setGameData(userId, data);
-    return data.hunger;
-  }
-
-  // 获取用户石头数量
-  async getStones(userId) {
-    const data = await this.getGameData(userId);
-    return data.stones;
-  }
-
-  // 增加或减少用户的石头数量
-  async addStones(userId, stones) {
-    const data = await this.getGameData(userId);
-    data.stones += stones;
-    if (data.stones < 0) data.stones = 0;
-    await this.setGameData(userId, data);
-    return data.stones;
-  }
-
-  // 获取用户面积
-  async getArea(userId) {
-    const data = await this.getGameData(userId);
-    return data.area;
-  }
-
-  // 增加或减少用户的面积
-  async addArea(userId, area) {
-    const data = await this.getGameData(userId);
-    data.area += area;
-    await this.setGameData(userId, data);
-    return data.area;
-  }
-
 }
-
 
 export default new Tools();
