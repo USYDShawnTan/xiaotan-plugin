@@ -32,7 +32,6 @@ export class DailyPush extends plugin {
     // 推送类型配置：显示名称 -> Redis key映射
     this.pushTypes = {
       每日: "DAILY",
-      运势: "LEO",
       澳币: "AUD",
       知乎: "ZHIHU",
     };
@@ -60,9 +59,6 @@ export class DailyPush extends plugin {
     // 早间新闻 (8:00)
     schedule.scheduleJob("0 0 8 * * ?", () => this.morningNews());
 
-    // 狮子座运势 (7:00)
-    //schedule.scheduleJob("0 0 7 * * ?", () => this.leoHoroscope());
-
     // 知乎热搜 (10:00)
     schedule.scheduleJob("*/3 * * * *", () => this.zhihuHotSearch());
 
@@ -85,47 +81,24 @@ export class DailyPush extends plugin {
     await PushManager.sendGroupMsg("DAILY", "🌙晚安安群友们~");
   }
 
-  //狮子座运势推送
-  async leoHoroscope() {
-    logger.info("推送狮子座运势");
-    try {
-      // 创建模拟消息对象
-      const mockE = {
-        msg: "狮子座今日运势",
-        reply: async (msg) => {
-          await PushManager.sendGroupMsg("LEO", msg);
-        },
-      };
-      // 调用现有的星座运势功能
-      await this.horoscope.getHoroscope(mockE);
-    } catch (err) {
-      logger.error(`狮子座运势推送失败: ${err}`);
-    }
-  }
-
   /**
    * 知乎热搜推送
    */
   async zhihuHotSearch() {
     logger.info("推送知乎热搜");
     try {
-      // 创建模拟消息对象，但不直接发送消息
+      // 创建模拟消息对象
       const mockE = {
         msg: "热搜",
+        user_id: Bot.uin,
         reply: async (msg) => {
-          // 存储消息内容，而不是直接发送
-          this.tempMessage = msg;
+          // 直接使用 PushManager 发送消息，不存储
+          await PushManager.sendGroupMsg("ZHIHU", msg);
         },
       };
 
-      // 获取热搜内容
+      // 调用知乎热搜功能
       await this.zhihu.getHotSearch(mockE);
-
-      // 只发送一次消息到所有订阅群
-      if (this.tempMessage) {
-        await PushManager.sendGroupMsg("ZHIHU", this.tempMessage);
-        this.tempMessage = null; // 清除临时消息
-      }
     } catch (err) {
       logger.error(`知乎热搜推送失败: ${err}`);
     }
