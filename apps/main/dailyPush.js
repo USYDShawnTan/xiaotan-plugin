@@ -43,7 +43,6 @@ export class DailyPush extends plugin {
     // API接口配置
     this.newsUrl = "https://api.jun.la/60s.php?format=image";
     this.audUrl = "https://api.433200.xyz/api/exchange_rate?currency1=AUD";
-    this.horoscope = new HoroscopePlugin();
     this.zhihu = new ZhihuPlugin();
     this.initSchedule();
     logger.info("[DailyPush] 插件初始化完成");
