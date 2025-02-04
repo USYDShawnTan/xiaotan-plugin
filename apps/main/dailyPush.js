@@ -30,9 +30,9 @@ export class DailyPush extends plugin {
 
     // 推送类型配置：显示名称 -> Redis key映射
     this.pushTypes = {
-      新闻: "NEWS",
-      狮子座运势: "LEO",
-      澳币汇率: "AUD",
+      每日: "DAILY",
+      运势: "LEO",
+      澳币: "AUD",
     };
 
     // API接口配置
@@ -66,11 +66,21 @@ export class DailyPush extends plugin {
    */
   async morningNews() {
     logger.info("推送早间新闻");
-    await PushManager.sendGroupMsg("NEWS", "☀️早上好~\n📰今日新闻已送达", {
+    await PushManager.sendGroupMsg("DAILY", "☀️早上好~\n📰今日新闻已送达", {
       image: this.newsUrl,
     });
   }
 
+  /**
+   * 晚间推送
+   */
+  async nightReminder() {
+    logger.info("推送晚间提醒");
+    await PushManager.sendGroupMsg(
+      "DAILY",
+      "🌙晚安安群友们~新的一天开始啦，记得打卡喔~"
+    );
+  }
   /**
    * 狮子座运势推送
    */
@@ -121,17 +131,6 @@ export class DailyPush extends plugin {
       logger.error(`澳币汇率推送失败: ${err}`);
       await PushManager.sendGroupMsg("AUD", "汇率数据获取失败，请稍后再试");
     }
-  }
-
-  /**
-   * 晚间提醒推送
-   */
-  async nightReminder() {
-    logger.info("推送晚间提醒");
-    await PushManager.sendGroupMsg(
-      "NEWS",
-      "🌙晚安安群友们~新的一天开始啦，记得打卡喔~"
-    );
   }
 
   /**
