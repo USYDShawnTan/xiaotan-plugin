@@ -38,11 +38,13 @@ export class DailyPush extends plugin {
       每日: "DAILY",
       澳币: "AUD",
       知乎: "ZHIHU",
+      一言: "HITOKOTO",
     };
 
     // API接口配置
     this.newsUrl = "https://api.jun.la/60s.php?format=image";
     this.audUrl = "https://api.433200.xyz/api/exchange_rate?currency1=AUD";
+    this.hitokotoUrl = "https://api.433200.xyz/api/hitokoto";
     this.zhihu = new ZhihuPlugin();
     this.initSchedule();
     logger.info("[DailyPush] 插件初始化完成");
@@ -70,6 +72,14 @@ export class DailyPush extends plugin {
 
     // 晚间提醒 (24:00)
     schedule.scheduleJob("0 0 24 * * *", () => this.nightReminder());
+
+    // 一言推送 (每小时随机时间，不包括0-7点)
+    for (let hour = 8; hour <= 23; hour++) {
+      const minute = Math.floor(Math.random() * 60); // 随机分钟数
+      schedule.scheduleJob(`${minute} 0 ${hour} * * *`, () =>
+        this.hitokotoPush()
+      );
+    }
 
     logger.info("[DailyPush] 定时任务初始化完成");
   }
@@ -108,9 +118,7 @@ export class DailyPush extends plugin {
   async audExchangeRate() {
     logger.info("[DailyPush] 推送澳币汇率");
     try {
-      const response = await fetch(
-        "https://api.433200.xyz/api/exchange_rate?currency1=AUD"
-      );
+      const response = await fetch(this.audUrl);
       const data = await response.json();
 
       if (data?.conversion_rates?.CNY?.rate) {
@@ -122,6 +130,25 @@ export class DailyPush extends plugin {
       }
     } catch (err) {
       logger.error(`[DailyPush] 澳币汇率推送失败: ${err}`);
+    }
+  }
+
+  /**
+   * 一言推送
+   */
+  async hitokotoPush() {
+    logger.info("[DailyPush] 推送一言");
+    try {
+      const response = await fetch(this.hitokotoUrl);
+      const data = await response.json();
+
+      const message = `${data.hitokoto}\n——${
+        data.from_who ? data.from_who + "「" : ""
+      }${data.from}${data.from_who ? "」" : ""}`;
+
+      await PushManager.sendGroupMsg("HITOKOTO", message);
+    } catch (err) {
+      logger.error(`[DailyPush] 一言推送失败: ${err}`);
     }
   }
 
