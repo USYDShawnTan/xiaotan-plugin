@@ -15,7 +15,7 @@ export class DailyPush extends plugin {
       name: "定时推送",
       dsc: "定时推送服务",
       event: "message",
-      priority: 5000,
+      priority: 1,
       rule: [
         {
           reg: "^#?(添加|删除)(.+)推送群(.*)$",

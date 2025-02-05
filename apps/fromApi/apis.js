@@ -6,7 +6,7 @@ export class api extends plugin {
       name: "API",
       dsc: "从api网页返回信息",
       event: "message",
-      priority: 1,
+      priority: 10086,
       rule: [
         {
           reg: "^#?答案之书([\\s\\S]*)$",
