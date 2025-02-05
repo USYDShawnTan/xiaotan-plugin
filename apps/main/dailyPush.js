@@ -76,7 +76,7 @@ export class DailyPush extends plugin {
     // 一言推送 (每小时随机时间，不包括0-7点)
     for (let hour = 8; hour <= 23; hour++) {
       const minute = Math.floor(Math.random() * 60); // 随机分钟数
-      schedule.scheduleJob(`${minute} 0 ${hour} * * *`, () =>
+      schedule.scheduleJob(`0 ${minute} ${hour} * * *`, () =>
         this.hitokotoPush()
       );
     }
