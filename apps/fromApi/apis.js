@@ -149,15 +149,20 @@ export class api extends plugin {
   }
   async yy(e) {
     // API的URL
-    const url = "https://api.vvhan.com/api/ian/wenxue";
+    const url = "https://api.433200.xyz/api/hitokoto";
     try {
       // 从API获取响应
       const response = await fetch(url);
-      // 解析响应为文本
-      const text = await response.text();
+      // 解析响应为JSON
+      const data = await response.json();
 
-      // 将文本作为消息回复
-      e.reply(text);
+      // 构建回复消息，包含一言内容和来源信息
+      const message = `${data.hitokoto}\n——${
+        data.from_who ? data.from_who + "「" : ""
+      }${data.from}${data.from_who ? "」" : ""}`;
+
+      // 发送消息
+      e.reply(message);
     } catch (error) {
       // 错误处理，发送错误消息
       e.reply("出错啦~稍后再试噢");
