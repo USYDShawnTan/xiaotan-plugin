@@ -68,7 +68,7 @@ export class DailyPush extends plugin {
     schedule.scheduleJob("0 0 10 * * *", () => this.audExchangeRate());
 
     // 知乎热搜 (每两小时)
-    schedule.scheduleJob("0 0 */2 * * ?", () => this.zhihuHotSearch());
+    schedule.scheduleJob("0 0 */6 * * ?", () => this.zhihuHotSearch());
 
     // 晚间提醒 (24:00)
     schedule.scheduleJob("0 0 24 * * *", () => this.nightReminder());
