@@ -4,7 +4,7 @@ export class api extends plugin {
   constructor() {
     super({
       name: "API",
-      dsc: "从api网页返回信息",
+      dsc: "从api网页返回信息.",
       event: "message",
       priority: 10086,
       rule: [
