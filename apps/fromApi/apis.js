@@ -56,18 +56,18 @@ export class api extends plugin {
           reg: "一言",
           fnc: "yy",
         },
-        {
-          reg: "骚话",
-          fnc: "sh",
-        },
-        {
-          reg: "情话",
-          fnc: "qh",
-        },
-        {
-          reg: "笑话",
-          fnc: "xh",
-        },
+        // {
+        //   reg: "骚话",
+        //   fnc: "sh",
+        // },
+        // {
+        //   reg: "情话",
+        //   fnc: "qh",
+        // },
+        // {
+        //   reg: "笑话",
+        //   fnc: "xh",
+        // },
         {
           reg: "恐怖",
           fnc: "horror",
