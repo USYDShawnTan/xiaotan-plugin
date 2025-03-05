@@ -168,7 +168,7 @@ export class api extends plugin {
       e.reply("出错啦~稍后再试噢");
     }
   }
-  //已经用不了😭
+  //已经用不了😭😭
   async sh(e) {
     // API的URL
     const url = "https://api.vvhan.com/api/text/sexy";
