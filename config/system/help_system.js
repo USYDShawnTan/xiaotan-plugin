@@ -1,7 +1,7 @@
 
 export const helpCfg = {
   title: "小谈帮助",
-  subTitle: "Yunzai-Bot & xiaotan-Plugin",
+  subTitle: "TRSS-Yunzai & xiaotan-Plugin",
   columnCount: 3,
   colWidth: 265,
   theme: "all",
@@ -24,7 +24,7 @@ export const helpList = [
     list: [
       {
         icon: 22,
-        title: "金箍棒（impart）",
+        title: "金箍棒",
         desc: "领养/查看 快快变大 击剑/pk@",
       },
       {
@@ -34,7 +34,7 @@ export const helpList = [
       },
       {
         icon: 22,
-        title: "今日运势",
+        title: "今日运势/打卡",
         desc: "打卡 今日运势 逆天改命",
       },
       {
@@ -45,12 +45,7 @@ export const helpList = [
       {
         icon: 22,
         title: "gpt",
-        desc: "欢迎使用人工智障 机器人/gpt",
-      },
-      {
-        icon: 22,
-        title: "ai画/画",
-        desc: "DELL模型，能英文最好英文啦",
+        desc: "有什么都可以对茉莉说噢",
       },
       {
         icon: 22,
@@ -70,17 +65,12 @@ export const helpList = [
       {
         icon: 22,
         title: "表情包创作",
-        desc: "#meme帮助",
+        desc: "meme帮助",
       },
       {
         icon: 22,
         title: "海龟汤",
         desc: "智商测试",
-      },
-      {
-        icon: 22,
-        title: "一言系列",
-        desc: "一言 情话 骚话 笑话",
       },
       {
         icon: 22,
@@ -91,11 +81,6 @@ export const helpList = [
         icon: 22,
         title: "赞我",
         desc: "顾名思义",
-      },
-      {
-        icon: 22,
-        title: "新闻",
-        desc: "每日60秒新闻",
       },
       {
         icon: 22,
@@ -114,11 +99,6 @@ export const helpList = [
       },
       {
         icon: 22,
-        title: "鸣潮公式",
-        desc: "鸣潮公式 1 2",
-      },
-      {
-        icon: 22,
         title: "发疯",
         desc: "发疯/发疯+名字",
       },
@@ -126,11 +106,6 @@ export const helpList = [
         icon: 22,
         title: "疯狂星期四",
         desc: "v我50",
-      },
-      {
-        icon: 22,
-        title: "货币转化",
-        desc: "xx汇率",
       },
       {
         icon: 22,

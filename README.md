@@ -3,17 +3,12 @@
 # 插件安装
 
 ```sh
-#dev分支 v4版
-git clone --depth=1 -b dev https://github.com/USYDShawnTan/xiaotan-plugin.git ./plugins/xiaotan-plugin/
-```
-
-```sh
-#github v3版
+#github 
 git clone --depth=1 https://github.com/USYDShawnTan/xiaotan-plugin.git ./plugins/xiaotan-plugin/
 ```
 
 ```sh
-#gitee v3版
+#gitee 
 git clone --depth=1 https://gitee.com/xioatan/xiaotan-plugin.git ./plugins/xiaotan-plugin/
 ```
 
