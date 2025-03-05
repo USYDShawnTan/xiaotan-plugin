@@ -39,6 +39,7 @@ export class DailyPush extends plugin {
       澳币: "AUD",
       知乎: "ZHIHU",
       一言: "HITOKOTO",
+      状态: "STATUS",
     };
 
     // API接口配置
@@ -70,6 +71,9 @@ export class DailyPush extends plugin {
     // 知乎热搜 (每两小时)
     schedule.scheduleJob("0 0 */6 * * ?", () => this.zhihuHotSearch());
 
+    // 状态检查 (每小时)
+    schedule.scheduleJob("* * * * *", () => this.checkStatus());
+
     // 晚间提醒 (24:00)
     schedule.scheduleJob("0 0 24 * * *", () => this.nightReminder());
 
@@ -96,6 +100,24 @@ export class DailyPush extends plugin {
     await PushManager.sendGroupMsg("DAILY", "🌙晚安安群友们~");
   }
 
+  /**
+   * 状态检查
+   */
+  async checkStatus() {
+    logger.info("[DailyPush] 推送状态检查");
+    try {
+      // 模拟发送"状态"消息
+      const mockE = {
+        msg: "状态",
+        reply: async (msg) => {
+          await PushManager.sendGroupMsg("STATUS", msg);
+        },
+      };
+      await this.onMessage(mockE);
+    } catch (err) {
+      logger.error(`[DailyPush] 状态推送失败: ${err}`);
+    }
+  }
   /**
    * 知乎热搜推送
    */
