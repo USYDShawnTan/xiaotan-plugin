@@ -33,6 +33,10 @@ export class api extends plugin {
           fnc: "emojimix",
         },
         {
+          reg: /\p{Emoji_Presentation}$/u,
+          fnc: "dynamic-emoji",
+        },
+        {
           reg: ".*?(龙|🐉|long|妈|md|cao|艹|草).*",
           fnc: "longtu",
         },
@@ -96,6 +100,29 @@ export class api extends plugin {
   async crazythursday(e) {
     await Apis.crazythursday(e);
     return true;
+  }
+  async dynamicEmoji(e) {
+    let emojis = e.msg.match(/\p{Emoji_Presentation}/gu);
+    if (!emojis || emojis.length !== 1) {
+      await e.reply("请输入一个 emoji 进行查询");
+      return;
+    }
+    let emoji = encodeURIComponent(emojis[0]);
+    let url = `https://api.433200.xyz/api/dynamic-emoji?emoji=${emoji}`;
+    try {
+      let res = await fetch(url);
+      if (res.ok) {
+        let data = await res.json();
+        let finalUrl = data.url;
+        let msg = segment.image(finalUrl);
+        await e.reply(msg);
+      } else {
+        await e.reply(`这个 emoji (${emojis[0]}) 没有动态版本噢~`);
+      }
+    } catch (error) {
+      console.error("请求出错", error);
+      await e.reply("请求出错，请稍后再试。");
+    }
   }
   async emojimix(e) {
     let emojis = e.msg.match(/\p{Emoji_Presentation}/gu);
