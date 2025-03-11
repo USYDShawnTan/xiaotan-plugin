@@ -29,12 +29,12 @@ export class api extends plugin {
           fnc: "crazythursday",
         },
         {
-          reg: /\p{Emoji_Presentation}{2}$/u,
+          reg: /(?:(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F){2})$/u,
           fnc: "emojimix",
         },
         {
-          reg: /\p{Emoji_Presentation}$/u,
-          fnc: "dynamic-emoji",
+          reg: /(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u,
+          fnc: "dynamicEmoji",
         },
         {
           reg: ".*?(龙|🐉|long|妈|md|cao|艹|草).*",
@@ -102,7 +102,8 @@ export class api extends plugin {
     return true;
   }
   async dynamicEmoji(e) {
-    let emojis = e.msg.match(/\p{Emoji_Presentation}/gu);
+    // 更新匹配逻辑，与正则表达式保持一致
+    let emojis = e.msg.match(/(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu);
     if (!emojis || emojis.length !== 1) {
       await e.reply("请输入一个 emoji 进行查询");
       return;
@@ -125,7 +126,8 @@ export class api extends plugin {
     }
   }
   async emojimix(e) {
-    let emojis = e.msg.match(/\p{Emoji_Presentation}/gu);
+    // 更新匹配逻辑，与正则表达式保持一致
+    let emojis = e.msg.match(/(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu);
     if (!emojis || emojis.length !== 2) {
       await e.reply("请输入两个emoji进行合成");
       return;
