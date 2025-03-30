@@ -19,7 +19,7 @@ export class ZhihuPlugin extends plugin {
 
   async getHotSearch(e) {
     try {
-      const response = await fetch("https://backend.433200.xyz/hot?from=zhihu");
+      const response = await fetch("https://api.433200.xyz/api/hot?from=zhihu");
       const data = await response.json();
 
       if (!data.success) {
