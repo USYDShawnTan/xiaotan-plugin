@@ -142,9 +142,9 @@ export class randomRider extends plugin {
 
       const data = await response.json();
 
-      // 获取信息
-      const formName = data.form || "未知形态";
-      const imageUrl = data.image?.src;
+      // 获取信息 - 使用data.image.name作为形态名
+      const formName = data.image.name || "未知形态";
+      const imageUrl = data.image.src;
 
       // 构建回复消息
       let replyMsg = `随机到的${riderNameCn}形态是: ${formName}`;
