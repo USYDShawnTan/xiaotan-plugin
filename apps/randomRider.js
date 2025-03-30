@@ -213,9 +213,9 @@ export class randomRider extends plugin {
       // 检查返回的数据是否包含形态信息
       if (
         !data ||
-        !data.forms ||
-        !Array.isArray(data.forms) ||
-        data.forms.length === 0
+        !data.images ||
+        !Array.isArray(data.images) ||
+        data.images.length === 0
       ) {
         return this.reply(`未找到${riderNameCn}的形态信息`);
       }
@@ -225,16 +225,16 @@ export class randomRider extends plugin {
 
       // 添加标题消息
       forwardMsgs.push({
-        message: `${riderNameCn}的所有形态（共${data.forms.length}个）：`,
+        message: `${riderNameCn}的所有形态（共${data.images.length}个）：`,
         nickname: "假面骑士图鉴",
         user_id: this.e.bot.uin,
       });
 
       // 遍历所有形态
-      for (let i = 0; i < data.forms.length; i++) {
-        const form = data.forms[i];
-        const formName = form.name;
-        const imageUrl = form.image;
+      for (let i = 0; i < data.images.length; i++) {
+        const image = data.images[i];
+        const formName = image.name;
+        const imageUrl = image.src;
 
         // 构建形态信息消息
         forwardMsgs.push({
