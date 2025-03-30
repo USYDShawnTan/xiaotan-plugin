@@ -220,32 +220,58 @@ export class randomRider extends plugin {
         return this.reply(`未找到${riderNameCn}的形态信息`);
       }
 
-      // 准备转发消息
-      const forwardMsgs = [];
+      // 先发送总数信息
+      await this.reply(
+        `${riderNameCn}的所有形态（共${data.images.length}个），根据wiki爬取的可能不全，将分批发送...`
+      );
 
-      // 添加标题消息
-      forwardMsgs.push({
-        message: `${riderNameCn}的所有形态（共${data.images.length}个）：`,
-        nickname: "假面骑士图鉴",
-        user_id: this.e.bot.uin,
-      });
+      // 每组发送的形态数量
+      const BATCH_SIZE = 5;
 
-      // 遍历所有形态
-      for (let i = 0; i < data.images.length; i++) {
-        const image = data.images[i];
-        const formName = image.name;
-        const imageUrl = image.src;
+      // 分批处理所有形态
+      for (
+        let batchIndex = 0;
+        batchIndex < Math.ceil(data.images.length / BATCH_SIZE);
+        batchIndex++
+      ) {
+        // 准备当前批次的转发消息
+        const forwardMsgs = [];
 
-        // 构建形态信息消息
+        // 计算当前批次的起始和结束索引
+        const startIndex = batchIndex * BATCH_SIZE;
+        const endIndex = Math.min(startIndex + BATCH_SIZE, data.images.length);
+
+        // 添加批次标题消息
         forwardMsgs.push({
-          message: [`形态${i + 1}: ${formName}`, segment.image(imageUrl)],
+          message: `${riderNameCn}的形态（${startIndex + 1}-${endIndex}/${
+            data.images.length
+          }）：`,
           nickname: "假面骑士图鉴",
           user_id: this.e.bot.uin,
         });
-      }
 
-      // 发送合并消息
-      await this.reply(await this.makeForwardMsg(forwardMsgs));
+        // 添加当前批次的形态信息
+        for (let i = startIndex; i < endIndex; i++) {
+          const image = data.images[i];
+          const formName = image.name;
+          const imageUrl = image.src;
+
+          // 构建形态信息消息
+          forwardMsgs.push({
+            message: [`形态${i + 1}: ${formName}`, segment.image(imageUrl)],
+            nickname: "假面骑士图鉴",
+            user_id: this.e.bot.uin,
+          });
+        }
+
+        // 发送当前批次的合并消息
+        await this.reply(await this.makeForwardMsg(forwardMsgs));
+
+        // 如果不是最后一批，等待一小段时间再发送下一批，避免发送过快
+        if (batchIndex < Math.ceil(data.images.length / BATCH_SIZE) - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
 
       return true;
     } catch (error) {
