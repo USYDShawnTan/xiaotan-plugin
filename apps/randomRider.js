@@ -59,11 +59,46 @@ export class randomRider extends plugin {
           reg: "^#?所有(.+)$",
           fnc: "getAllForms",
         },
+        {
+          reg: "^#?骑士列表$",
+          fnc: "getRiderList",
+        },
       ],
     });
   }
 
-  async getRider() {
+  async getRiderList(e) {
+    try {
+      await this.reply("正在获取骑士列表，请稍候...");
+
+      // 调用API获取骑士列表
+      const response = await fetch(`${BASE_API}`);
+      if (!response.ok) {
+        throw new Error(`API请求失败: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const riders = data.riders;
+
+      if (!riders || !Array.isArray(riders) || riders.length === 0) {
+        return this.reply("未找到任何骑士信息。");
+      }
+
+      // 将英文名转换为中文名
+      const riderList = riders
+        .map((rider) => RIDER_MAP[rider] || rider)
+        .join("、");
+
+      await this.reply(`当前已导入的骑士列表：\n${riderList}`);
+      return true;
+    } catch (error) {
+      logger.error(`[骑士列表]插件错误: ${error}`);
+      await this.reply(`获取骑士列表失败: ${error.message}`);
+      return false;
+    }
+  }
+
+  async getRider(e) {
     try {
       await this.reply("正在寻找随机骑士中...");
 
