@@ -98,6 +98,14 @@ export class Story extends plugin {
           reg: '^故事帮助$',
           fnc: 'help'
         },
+        {
+          reg: '^故事测试$',
+          fnc: 'testStory'
+        },
+        {
+          reg: '^强制触发\\s+.+$',
+          fnc: 'forceStory'
+        },
         // 自动生成触发规则
         ...createTriggerRules()
       ]
@@ -201,12 +209,17 @@ export class Story extends plugin {
   async help(e) {
     const msg = `【故事式语句触发器帮助】
 功能：根据关键词自动生成故事式语句
-触发方式：消息中包含"谁"分类的关键词
+触发方式：消息中包含"谁"分类的关键词，其他部分会自动随机补充
 词库管理：
   ✓ 添加关键词：添加 类别 关键词
   ✓ 删除关键词：删除 类别 关键词
   ✓ 查看词库：查看词库
-示例：${keywords['谁'][0]}在${keywords['在哪'][0]}${keywords['怎么样地'][0]}${keywords['干什么'][0]}。`
+  
+测试命令：
+  ✓ 故事测试：生成一个随机故事句子
+  ✓ 强制触发 [内容]：基于内容生成故事句子
+
+示例：只需发送"${keywords['谁'][0]}"，机器人就会生成类似"${keywords['谁'][0]}在${keywords['在哪'][0]}${keywords['怎么样地'][0]}${keywords['干什么'][0]}。"的句子`
     
     await this.reply(msg)
   }
@@ -214,7 +227,9 @@ export class Story extends plugin {
   // 检查触发条件并生成故事式语句
   async checkTrigger(e) {
     // 忽略命令消息
-    if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || e.msg === '查看词库' || e.msg === '故事帮助') {
+    if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || 
+        e.msg === '查看词库' || e.msg === '故事帮助' || 
+        e.msg === '故事测试' || e.msg.startsWith('强制触发')) {
       return
     }
     
@@ -235,6 +250,121 @@ export class Story extends plugin {
         return
       }
       
+      // 查找其他类别的关键词，如果找不到就随机选择
+      let where = null
+      let how = null
+      let what = null
+      
+      // 查找"在哪"，如果没找到就随机选择
+      for (const place of keywords['在哪']) {
+        if (e.msg.includes(place)) {
+          where = place
+          logger.info(`[故事式语句] 找到"在哪"关键词: ${place}`)
+          break
+        }
+      }
+      if (!where) {
+        where = keywords['在哪'][Math.floor(Math.random() * keywords['在哪'].length)]
+        logger.info(`[故事式语句] 随机选择"在哪"关键词: ${where}`)
+      }
+      
+      // 查找"怎么样地"，如果没找到就随机选择
+      for (const manner of keywords['怎么样地']) {
+        if (e.msg.includes(manner)) {
+          how = manner
+          logger.info(`[故事式语句] 找到"怎么样地"关键词: ${manner}`)
+          break
+        }
+      }
+      if (!how) {
+        how = keywords['怎么样地'][Math.floor(Math.random() * keywords['怎么样地'].length)]
+        logger.info(`[故事式语句] 随机选择"怎么样地"关键词: ${how}`)
+      }
+      
+      // 查找"干什么"，如果没找到就随机选择
+      for (const action of keywords['干什么']) {
+        if (e.msg.includes(action)) {
+          what = action
+          logger.info(`[故事式语句] 找到"干什么"关键词: ${action}`)
+          break
+        }
+      }
+      if (!what) {
+        what = keywords['干什么'][Math.floor(Math.random() * keywords['干什么'].length)]
+        logger.info(`[故事式语句] 随机选择"干什么"关键词: ${what}`)
+      }
+      
+      // 构建句子
+      let sentence = who
+      sentence += `在${where}`
+      sentence += how
+      sentence += what
+      
+      // 添加句号
+      sentence += '。'
+      
+      logger.info(`[故事式语句] 触发成功，生成句子: ${sentence}`)
+      
+      // 发送句子
+      await this.reply(`【触发】${sentence}`)
+    } catch (error) {
+      logger.error(`[故事式语句] 触发器错误：${error}`)
+    }
+  }
+
+  // 测试故事生成功能
+  async testStory(e) {
+    try {
+      // 随机选择一个"谁"关键词
+      const who = keywords['谁'][Math.floor(Math.random() * keywords['谁'].length)]
+      
+      // 随机选择一个"在哪"关键词
+      const where = keywords['在哪'][Math.floor(Math.random() * keywords['在哪'].length)]
+      
+      // 随机选择一个"怎么样地"关键词
+      const how = keywords['怎么样地'][Math.floor(Math.random() * keywords['怎么样地'].length)]
+      
+      // 随机选择一个"干什么"关键词
+      const what = keywords['干什么'][Math.floor(Math.random() * keywords['干什么'].length)]
+      
+      // 构建句子
+      const sentence = `${who}在${where}${how}${what}。`
+      
+      logger.info(`[故事式语句] 测试生成句子: ${sentence}`)
+      
+      // 发送句子
+      await this.reply(`【测试】${sentence}\n\n提示：你可以发送消息包含多个关键词来触发，如"${who}在${where}"`)
+    } catch (error) {
+      logger.error(`[故事式语句] 测试错误：${error}`)
+      await this.reply('测试失败，请查看日志')
+    }
+  }
+
+  // 强制触发故事生成
+  async forceStory(e) {
+    try {
+      // 提取消息内容
+      const content = e.msg.replace(/^强制触发\s+/, '').trim()
+      
+      // 记录消息内容
+      logger.info(`[故事式语句] 强制触发，内容: ${content}`)
+      
+      // 查找触发的"谁"关键词
+      let who = null
+      for (const person of keywords['谁']) {
+        if (content.includes(person)) {
+          who = person
+          logger.info(`[故事式语句] 找到"谁"关键词: ${person}`)
+          break
+        }
+      }
+      
+      // 如果没有找到"谁"，随机选择一个
+      if (!who) {
+        who = keywords['谁'][Math.floor(Math.random() * keywords['谁'].length)]
+        logger.info(`[故事式语句] 未找到"谁"关键词，随机选择: ${who}`)
+      }
+      
       // 查找其他类别的关键词
       let where = null
       let how = null
@@ -242,7 +372,7 @@ export class Story extends plugin {
       
       // 查找"在哪"
       for (const place of keywords['在哪']) {
-        if (e.msg.includes(place)) {
+        if (content.includes(place)) {
           where = place
           logger.info(`[故事式语句] 找到"在哪"关键词: ${place}`)
           break
@@ -251,7 +381,7 @@ export class Story extends plugin {
       
       // 查找"怎么样地"
       for (const manner of keywords['怎么样地']) {
-        if (e.msg.includes(manner)) {
+        if (content.includes(manner)) {
           how = manner
           logger.info(`[故事式语句] 找到"怎么样地"关键词: ${manner}`)
           break
@@ -260,17 +390,19 @@ export class Story extends plugin {
       
       // 查找"干什么"
       for (const action of keywords['干什么']) {
-        if (e.msg.includes(action)) {
+        if (content.includes(action)) {
           what = action
           logger.info(`[故事式语句] 找到"干什么"关键词: ${action}`)
           break
         }
       }
       
-      // 检查是否找到除了"谁"以外的任何关键词
+      // 如果没有找到任何其他关键词，随机选择
       if (!where && !how && !what) {
-        logger.info(`[故事式语句] 只找到"谁"关键词：${who}，需要其他类别关键词才能触发`)
-        return
+        where = keywords['在哪'][Math.floor(Math.random() * keywords['在哪'].length)]
+        how = keywords['怎么样地'][Math.floor(Math.random() * keywords['怎么样地'].length)]
+        what = keywords['干什么'][Math.floor(Math.random() * keywords['干什么'].length)]
+        logger.info(`[故事式语句] 未找到其他关键词，随机选择补充`)
       }
       
       // 构建句子
@@ -282,12 +414,13 @@ export class Story extends plugin {
       // 添加句号
       sentence += '。'
       
-      logger.info(`[故事式语句] 触发成功，生成句子: ${sentence}`)
+      logger.info(`[故事式语句] 强制生成句子: ${sentence}`)
       
       // 发送句子
-      await this.reply(`【触发】${sentence}`)
+      await this.reply(`【强制触发】${sentence}`)
     } catch (error) {
-      logger.error(`[故事式语句] 触发器错误：${error}`)
+      logger.error(`[故事式语句] 强制触发错误：${error}`)
+      await this.reply('强制触发失败，请查看日志')
     }
   }
 } 
