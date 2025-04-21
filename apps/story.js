@@ -61,6 +61,19 @@ const loadKeywords = () => {
   }
 }
 
+// 创建触发规则的正则表达式
+const createTriggerRules = () => {
+  // 为每个"谁"分类的关键词创建独立的正则表达式规则
+  return keywords['谁'].map(person => {
+    // 转义正则表达式中的特殊字符
+    const escapedPerson = person.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return {
+      reg: new RegExp(escapedPerson, 'i'), // 不区分大小写
+      fnc: 'checkTrigger'
+    }
+  })
+}
+
 export class Story extends plugin {
   constructor() {
     super({
@@ -85,25 +98,8 @@ export class Story extends plugin {
           reg: '^故事帮助$',
           fnc: 'help'
         },
-        {
-          // 根据"谁"分类中的所有关键词动态生成正则表达式
-          reg: (e) => {
-            // 避免处理命令消息
-            if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || 
-                e.msg === '查看词库' || e.msg === '故事帮助') {
-              return false
-            }
-            // 检查是否包含任何"谁"分类的关键词
-            for (const person of keywords['谁']) {
-              if (e.msg.includes(person)) {
-                return true
-              }
-            }
-            return false
-          },
-          fnc: 'checkTrigger',
-          log: false
-        }
+        // 自动生成触发规则
+        ...createTriggerRules()
       ]
     })
     
@@ -111,6 +107,18 @@ export class Story extends plugin {
     loadKeywords()
     logger.info('[故事式语句] 插件已初始化，可触发关键词数量:', 
       Object.values(keywords).reduce((sum, arr) => sum + arr.length, 0))
+  }
+  
+  // 当词库更新后，需要刷新触发规则
+  refreshRules() {
+    // 重新生成规则
+    const newRules = createTriggerRules()
+    
+    // 替换已有的触发规则
+    // 保留前四条规则（添加、删除、查看、帮助）
+    this.rule = this.rule.slice(0, 4).concat(newRules)
+    
+    logger.info('[故事式语句] 已刷新触发规则，当前"谁"关键词数量:', keywords['谁'].length)
   }
   
   // 添加关键词
@@ -136,6 +144,11 @@ export class Story extends plugin {
     // 添加关键词
     keywords[category].push(word)
     saveKeywords()
+    
+    // 如果是"谁"类别，需要刷新触发规则
+    if (category === '谁') {
+      this.refreshRules()
+    }
     
     await this.reply(`已添加「${word}」到「${category}」类别`)
   }
@@ -164,6 +177,11 @@ export class Story extends plugin {
     // 删除关键词
     keywords[category].splice(index, 1)
     saveKeywords()
+    
+    // 如果是"谁"类别，需要刷新触发规则
+    if (category === '谁') {
+      this.refreshRules()
+    }
     
     await this.reply(`已从「${category}」类别中删除「${word}」`)
   }
@@ -195,6 +213,11 @@ export class Story extends plugin {
   
   // 检查触发条件并生成故事式语句
   async checkTrigger(e) {
+    // 忽略命令消息
+    if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || e.msg === '查看词库' || e.msg === '故事帮助') {
+      return
+    }
+    
     try {
       // 查找触发的"谁"关键词
       let who = null
@@ -206,9 +229,9 @@ export class Story extends plugin {
         }
       }
       
-      // 这里应该总能找到"谁"关键词，因为通过reg函数已经过滤了
+      // 这应该不会发生，因为触发规则已经确保了存在"谁"关键词
       if (!who) {
-        logger.warn(`[故事式语句] 触发但未找到"谁"关键词，这不应该发生`)
+        logger.warn(`[故事式语句] 触发但未找到"谁"关键词，请检查正则表达式`)
         return
       }
       
@@ -246,7 +269,7 @@ export class Story extends plugin {
       
       // 检查是否找到除了"谁"以外的任何关键词
       if (!where && !how && !what) {
-        logger.info(`[故事式语句] 只找到"谁"关键词，需要其他类别关键词才能触发`)
+        logger.info(`[故事式语句] 只找到"谁"关键词：${who}，需要其他类别关键词才能触发`)
         return
       }
       
