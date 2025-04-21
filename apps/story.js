@@ -306,7 +306,7 @@ export class Story extends plugin {
       logger.info(`[故事式语句] 触发成功，生成句子: ${sentence}`)
       
       // 发送句子
-      await this.reply(`【触发】${sentence}`)
+      await this.reply(`【触发随机故事！】${sentence}`)
     } catch (error) {
       logger.error(`[故事式语句] 触发器错误：${error}`)
     }
