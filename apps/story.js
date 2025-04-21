@@ -15,32 +15,49 @@ let keywords = {
 const ensureDir = () => {
   const dirPath = path.join(process.cwd(), 'plugins', 'xiaotan-plugin', 'data', 'story')
   if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true })
+    try {
+      fs.mkdirSync(dirPath, { recursive: true })
+      logger.info('[故事式语句] 成功创建数据目录:', dirPath)
+    } catch (err) {
+      logger.error('[故事式语句] 创建数据目录失败:', err)
+    }
   }
 }
 
 // 保存词库到文件
 const saveKeywords = () => {
-  ensureDir()
-  Data.writeJSON('story/keywords', keywords)
+  try {
+    ensureDir()
+    Data.writeJSON('data/story/keywords', keywords)
+    logger.info('[故事式语句] 词库保存成功')
+  } catch (err) {
+    logger.error('[故事式语句] 保存词库时出错:', err)
+  }
 }
 
 // 从文件加载词库
 const loadKeywords = () => {
-  ensureDir()
-  let data = Data.readJSON('story/keywords')
-  if (data && Object.keys(data).length > 0) {
-    // 确保所有必要的类别都存在
-    const categories = ['谁', '在哪', '怎么样地', '干什么']
-    categories.forEach(category => {
-      if (!data[category]) {
-        data[category] = keywords[category] || []
-      }
-    })
-    keywords = data
-  } else {
-    // 如果文件不存在或为空，保存默认词库
-    saveKeywords()
+  try {
+    ensureDir()
+    let data = Data.readJSON('data/story/keywords')
+    if (data && Object.keys(data).length > 0) {
+      // 确保所有必要的类别都存在
+      const categories = ['谁', '在哪', '怎么样地', '干什么']
+      categories.forEach(category => {
+        if (!data[category]) {
+          data[category] = keywords[category] || []
+        }
+      })
+      keywords = data
+      logger.info('[故事式语句] 成功加载词库，共有关键词：', 
+        Object.values(keywords).reduce((sum, arr) => sum + arr.length, 0))
+    } else {
+      // 如果文件不存在或为空，保存默认词库
+      logger.info('[故事式语句] 未找到现有词库，创建默认词库')
+      saveKeywords()
+    }
+  } catch (err) {
+    logger.error('[故事式语句] 加载词库时出错:', err)
   }
 }
 
