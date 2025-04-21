@@ -86,7 +86,21 @@ export class Story extends plugin {
           fnc: 'help'
         },
         {
-          reg: '.*',
+          // 根据"谁"分类中的所有关键词动态生成正则表达式
+          reg: (e) => {
+            // 避免处理命令消息
+            if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || 
+                e.msg === '查看词库' || e.msg === '故事帮助') {
+              return false
+            }
+            // 检查是否包含任何"谁"分类的关键词
+            for (const person of keywords['谁']) {
+              if (e.msg.includes(person)) {
+                return true
+              }
+            }
+            return false
+          },
           fnc: 'checkTrigger',
           log: false
         }
@@ -181,13 +195,8 @@ export class Story extends plugin {
   
   // 检查触发条件并生成故事式语句
   async checkTrigger(e) {
-    // 忽略命令消息
-    if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || e.msg === '查看词库' || e.msg === '故事帮助') {
-      return
-    }
-    
     try {
-      // 检查是否包含"谁"类别的关键词
+      // 查找触发的"谁"关键词
       let who = null
       for (const person of keywords['谁']) {
         if (e.msg.includes(person)) {
@@ -197,9 +206,9 @@ export class Story extends plugin {
         }
       }
       
-      // 如果没有找到"谁"，不触发
+      // 这里应该总能找到"谁"关键词，因为通过reg函数已经过滤了
       if (!who) {
-        logger.info(`[故事式语句] 未找到"谁"关键词，不触发`)
+        logger.warn(`[故事式语句] 触发但未找到"谁"关键词，这不应该发生`)
         return
       }
       
