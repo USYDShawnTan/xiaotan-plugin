@@ -1,5 +1,4 @@
 import plugin from '../../../lib/plugins/plugin.js'
-import { segment } from 'icqq'
 import { Config, Data } from '../components/index.js'
 import fs from 'node:fs'
 import path from 'node:path'
