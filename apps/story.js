@@ -3,10 +3,10 @@ import { Config, Data } from '../components/index.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
-// 初始化词库
+// 全局词库，只在初始化时加载一次
 let keywords = {
   '谁': ['张三', '小红', '隔壁老王'],
-  '在哪': ['在厕所', '在办公室', '在火锅店'],
+  '在哪': ['厕所', '办公室', '火锅店'],
   '怎么样地': ['若无其事地', '激动地', '偷偷地'],
   '干什么': ['吃泡面', '拍桌子', '敲代码']
 }
@@ -93,8 +93,10 @@ export class Story extends plugin {
       ]
     })
     
-    // 加载词库
+    // 加载词库，只在初始化时加载一次
     loadKeywords()
+    logger.info('[故事式语句] 插件已初始化，可触发关键词数量:', 
+      Object.values(keywords).reduce((sum, arr) => sum + arr.length, 0))
   }
   
   // 添加关键词
@@ -190,12 +192,16 @@ export class Story extends plugin {
       for (const person of keywords['谁']) {
         if (e.msg.includes(person)) {
           who = person
+          logger.info(`[故事式语句] 找到"谁"关键词: ${person}`)
           break
         }
       }
       
       // 如果没有找到"谁"，不触发
-      if (!who) return
+      if (!who) {
+        logger.info(`[故事式语句] 未找到"谁"关键词，不触发`)
+        return
+      }
       
       // 查找其他类别的关键词
       let where = null
@@ -206,6 +212,7 @@ export class Story extends plugin {
       for (const place of keywords['在哪']) {
         if (e.msg.includes(place)) {
           where = place
+          logger.info(`[故事式语句] 找到"在哪"关键词: ${place}`)
           break
         }
       }
@@ -214,6 +221,7 @@ export class Story extends plugin {
       for (const manner of keywords['怎么样地']) {
         if (e.msg.includes(manner)) {
           how = manner
+          logger.info(`[故事式语句] 找到"怎么样地"关键词: ${manner}`)
           break
         }
       }
@@ -222,8 +230,15 @@ export class Story extends plugin {
       for (const action of keywords['干什么']) {
         if (e.msg.includes(action)) {
           what = action
+          logger.info(`[故事式语句] 找到"干什么"关键词: ${action}`)
           break
         }
+      }
+      
+      // 检查是否找到除了"谁"以外的任何关键词
+      if (!where && !how && !what) {
+        logger.info(`[故事式语句] 只找到"谁"关键词，需要其他类别关键词才能触发`)
+        return
       }
       
       // 构建句子
@@ -232,16 +247,15 @@ export class Story extends plugin {
       if (how) sentence += how
       if (what) sentence += what
       
-      // 如果只有"谁"，不生成句子
-      if (sentence === who) return
-      
       // 添加句号
       sentence += '。'
+      
+      logger.info(`[故事式语句] 触发成功，生成句子: ${sentence}`)
       
       // 发送句子
       await this.reply(`【触发】${sentence}`)
     } catch (error) {
-      logger.error(`故事式语句触发器错误：${error}`)
+      logger.error(`[故事式语句] 触发器错误：${error}`)
     }
   }
 } 
