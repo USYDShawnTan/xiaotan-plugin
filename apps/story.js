@@ -2,13 +2,22 @@ import plugin from '../../../lib/plugins/plugin.js'
 import { Config, Data } from '../components/index.js'
 import fs from 'node:fs'
 import path from 'node:path'
+import common from '../../../lib/common/common.js'
 
 // 全局词库，只在初始化时加载一次
 let keywords = {
-  '谁': ['张三', '小红', '隔壁老王'],
-  '在哪': ['厕所', '办公室', '火锅店'],
-  '怎么样地': ['若无其事地', '激动地', '偷偷地'],
-  '干什么': ['吃泡面', '拍桌子', '敲代码']
+  'who': ['张三', '小红', '隔壁老王'],
+  'where': ['厕所', '办公室', '火锅店'],
+  'how': ['若无其事地', '激动地', '偷偷地'],
+  'what': ['吃泡面', '拍桌子', '敲代码']
+}
+
+// 分类名称映射（用于显示中文名称）
+const categoryNames = {
+  'who': '谁',
+  'where': '在哪',
+  'how': '怎么样地',
+  'what': '干什么'
 }
 
 // 确保数据目录存在
@@ -42,7 +51,7 @@ const loadKeywords = () => {
     let data = Data.readJSON('data/story/keywords')
     if (data && Object.keys(data).length > 0) {
       // 确保所有必要的类别都存在
-      const categories = ['谁', '在哪', '怎么样地', '干什么']
+      const categories = ['who', 'where', 'how', 'what']
       categories.forEach(category => {
         if (!data[category]) {
           data[category] = keywords[category] || []
@@ -64,7 +73,7 @@ const loadKeywords = () => {
 // 创建触发规则的正则表达式
 const createTriggerRules = () => {
   // 为每个"谁"分类的关键词创建独立的正则表达式规则
-  return keywords['谁'].map(person => {
+  return keywords['who'].map(person => {
     // 转义正则表达式中的特殊字符
     const escapedPerson = person.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return {
@@ -72,6 +81,26 @@ const createTriggerRules = () => {
       fnc: 'checkTrigger'
     }
   })
+}
+
+// 解析自定义模板
+const parseTemplate = (template) => {
+  // 匹配 /xxx/ 格式的标记
+  const regex = /\/([^/]+)\//g
+  let match
+  let variables = []
+  
+  // 提取所有变量
+  while ((match = regex.exec(template)) !== null) {
+    variables.push({
+      full: match[0],
+      name: match[1],
+      start: match.index,
+      end: match.index + match[0].length
+    })
+  }
+  
+  return variables
 }
 
 export class Story extends plugin {
@@ -83,11 +112,11 @@ export class Story extends plugin {
       priority: 5000,
       rule: [
         {
-          reg: '^添加\\s+(谁|在哪|怎么样地|干什么)\\s+.+$',
+          reg: '^添加\\s+(who|where|how|what)\\s+.+$',
           fnc: 'addKeyword'
         },
         {
-          reg: '^删除\\s+(谁|在哪|怎么样地|干什么)\\s+.+$',
+          reg: '^删除\\s+(who|where|how|what)\\s+.+$',
           fnc: 'deleteKeyword'
         },
         {
@@ -106,6 +135,10 @@ export class Story extends plugin {
           reg: '^强制触发\\s+.+$',
           fnc: 'forceStory'
         },
+        {
+          reg: '^#T\\s+.+$',
+          fnc: 'customTemplate'
+        },
         // 自动生成触发规则
         ...createTriggerRules()
       ]
@@ -117,16 +150,65 @@ export class Story extends plugin {
       Object.values(keywords).reduce((sum, arr) => sum + arr.length, 0))
   }
   
+  // 自定义模板触发
+  async customTemplate(e) {
+    try {
+      // 提取模板内容
+      const template = e.msg.replace(/^#T\s+/, '').trim()
+      
+      // 解析模板中的变量
+      const variables = parseTemplate(template)
+      
+      if (variables.length === 0) {
+        await this.reply('模板格式错误，请使用 /xxx/ 表示词库变量，如：#T /who/和/who/在/where/')
+        return
+      }
+      
+      // 生成故事
+      let story = template
+      
+      // 逆序替换变量（从后向前，避免位置偏移）
+      for (let i = variables.length - 1; i >= 0; i--) {
+        const variable = variables[i]
+        
+        // 检查变量名是否有效
+        if (!keywords[variable.name]) {
+          await this.reply(`未知的变量类型：${variable.name}，有效变量为：who, where, how, what`)
+          return
+        }
+        
+        // 随机选择一个关键词
+        const keyword = keywords[variable.name][Math.floor(Math.random() * keywords[variable.name].length)]
+        
+        // 替换变量
+        story = story.substring(0, variable.start) + keyword + story.substring(variable.end)
+      }
+      
+      // 如果句子末尾没有标点，添加句号
+      if (!/[。！？\.!?]$/.test(story)) {
+        story += '。'
+      }
+      
+      logger.info(`[故事式语句] 自定义模板生成故事: ${story}`)
+      
+      // 发送故事
+      await this.reply(`【自定义】${story}`)
+    } catch (error) {
+      logger.error(`[故事式语句] 自定义模板错误: ${error}`)
+      await this.reply('生成故事失败，请检查模板格式')
+    }
+  }
+  
   // 当词库更新后，需要刷新触发规则
   refreshRules() {
     // 重新生成规则
     const newRules = createTriggerRules()
     
     // 替换已有的触发规则
-    // 保留前四条规则（添加、删除、查看、帮助）
-    this.rule = this.rule.slice(0, 4).concat(newRules)
+    // 保留前七条规则（添加、删除、查看、帮助、测试、强制触发、自定义）
+    this.rule = this.rule.slice(0, 7).concat(newRules)
     
-    logger.info('[故事式语句] 已刷新触发规则，当前"谁"关键词数量:', keywords['谁'].length)
+    logger.info('[故事式语句] 已刷新触发规则，当前"谁"关键词数量:', keywords['who'].length)
   }
   
   // 添加关键词
@@ -138,14 +220,14 @@ export class Story extends plugin {
     // }
     
     // 提取消息中的类别和关键词
-    const match = /^添加\s+(谁|在哪|怎么样地|干什么)\s+(.+)$/.exec(e.msg)
+    const match = /^添加\s+(who|where|how|what)\s+(.+)$/.exec(e.msg)
     if (!match) return
     
     const [, category, word] = match
     
     // 检查关键词是否已存在
     if (keywords[category].includes(word)) {
-      await this.reply(`「${word}」已在「${category}」类别中存在`)
+      await this.reply(`「${word}」已在「${categoryNames[category]}」类别中存在`)
       return
     }
     
@@ -154,11 +236,11 @@ export class Story extends plugin {
     saveKeywords()
     
     // 如果是"谁"类别，需要刷新触发规则
-    if (category === '谁') {
+    if (category === 'who') {
       this.refreshRules()
     }
     
-    await this.reply(`已添加「${word}」到「${category}」类别`)
+    await this.reply(`已添加「${word}」到「${categoryNames[category]}」类别`)
   }
   
   // 删除关键词
@@ -170,7 +252,7 @@ export class Story extends plugin {
     // }
     
     // 提取消息中的类别和关键词
-    const match = /^删除\s+(谁|在哪|怎么样地|干什么)\s+(.+)$/.exec(e.msg)
+    const match = /^删除\s+(who|where|how|what)\s+(.+)$/.exec(e.msg)
     if (!match) return
     
     const [, category, word] = match
@@ -178,7 +260,7 @@ export class Story extends plugin {
     // 检查关键词是否存在
     const index = keywords[category].indexOf(word)
     if (index === -1) {
-      await this.reply(`「${word}」在「${category}」类别中不存在`)
+      await this.reply(`「${word}」在「${categoryNames[category]}」类别中不存在`)
       return
     }
     
@@ -187,22 +269,51 @@ export class Story extends plugin {
     saveKeywords()
     
     // 如果是"谁"类别，需要刷新触发规则
-    if (category === '谁') {
+    if (category === 'who') {
       this.refreshRules()
     }
     
-    await this.reply(`已从「${category}」类别中删除「${word}」`)
+    await this.reply(`已从「${categoryNames[category]}」类别中删除「${word}」`)
   }
   
-  // 查看词库
+  // 查看词库（使用转发消息）
   async viewKeywords(e) {
-    let msg = '【词库内容】\n'
+    // 创建转发消息数组
+    const forwardMsgs = []
     
+    // 添加标题
+    forwardMsgs.push('【故事式语句 - 词库内容】')
+    
+    // 添加各分类的内容
     for (const category in keywords) {
-      msg += `${category}：${keywords[category].join('、')}\n`
+      forwardMsgs.push(`▌${categoryNames[category]}（${category}）▐`)
+      
+      if (keywords[category].length === 0) {
+        forwardMsgs.push('暂无内容')
+      } else {
+        // 每行显示3个关键词，格式化为表格样式
+        let content = ''
+        keywords[category].forEach((word, index) => {
+          content += `${word}${(index + 1) % 3 === 0 ? '\n' : '\t'}`
+        })
+        forwardMsgs.push(content.trim())
+      }
+      
+      // 添加分隔线（最后一个分类不添加）
+      if (category !== 'what') {
+        forwardMsgs.push('————————————')
+      }
     }
     
-    await this.reply(msg.trim())
+    // 添加使用说明
+    forwardMsgs.push('\n📝 添加: 添加 分类 关键词')
+    forwardMsgs.push('📝 删除: 删除 分类 关键词')
+    forwardMsgs.push('📝 测试: 故事测试')
+    forwardMsgs.push('📝 帮助: 故事帮助')
+    
+    // 生成并发送转发消息
+    const forwardMsg = await common.makeForwardMsg(e, forwardMsgs, '故事式语句 - 词库管理')
+    await this.reply(forwardMsg)
   }
   
   // 显示帮助信息
@@ -211,15 +322,19 @@ export class Story extends plugin {
 功能：根据关键词自动生成故事式语句
 触发方式：消息中包含"谁"分类的关键词，其他部分会自动随机补充
 词库管理：
-  ✓ 添加关键词：添加 类别 关键词
-  ✓ 删除关键词：删除 类别 关键词
+  ✓ 添加关键词：添加 分类 关键词（分类：who, where, how, what）
+  ✓ 删除关键词：删除 分类 关键词
   ✓ 查看词库：查看词库
   
 测试命令：
   ✓ 故事测试：生成一个随机故事句子
   ✓ 强制触发 [内容]：基于内容生成故事句子
-
-示例：只需发送"${keywords['谁'][0]}"，机器人就会生成类似"${keywords['谁'][0]}在${keywords['在哪'][0]}${keywords['怎么样地'][0]}${keywords['干什么'][0]}。"的句子`
+  ✓ #T /分类/内容/分类/：使用自定义模板生成故事
+  
+示例：
+  ① 只需发送"${keywords['who'][0]}"，机器人就会生成随机故事
+  ② 自定义模板：#T /who/在/where//how//what/
+  ③ 自定义文本模板：#T 今天我看到/who/正在/where//what/`
     
     await this.reply(msg)
   }
@@ -229,14 +344,15 @@ export class Story extends plugin {
     // 忽略命令消息
     if (e.msg.startsWith('添加') || e.msg.startsWith('删除') || 
         e.msg === '查看词库' || e.msg === '故事帮助' || 
-        e.msg === '故事测试' || e.msg.startsWith('强制触发')) {
+        e.msg === '故事测试' || e.msg.startsWith('强制触发') ||
+        e.msg.startsWith('#T')) {
       return
     }
     
     try {
       // 查找触发的"谁"关键词
       let who = null
-      for (const person of keywords['谁']) {
+      for (const person of keywords['who']) {
         if (e.msg.includes(person)) {
           who = person
           logger.info(`[故事式语句] 找到"谁"关键词: ${person}`)
@@ -256,7 +372,7 @@ export class Story extends plugin {
       let what = null
       
       // 查找"在哪"，如果没找到就随机选择
-      for (const place of keywords['在哪']) {
+      for (const place of keywords['where']) {
         if (e.msg.includes(place)) {
           where = place
           logger.info(`[故事式语句] 找到"在哪"关键词: ${place}`)
@@ -264,12 +380,12 @@ export class Story extends plugin {
         }
       }
       if (!where) {
-        where = keywords['在哪'][Math.floor(Math.random() * keywords['在哪'].length)]
+        where = keywords['where'][Math.floor(Math.random() * keywords['where'].length)]
         logger.info(`[故事式语句] 随机选择"在哪"关键词: ${where}`)
       }
       
       // 查找"怎么样地"，如果没找到就随机选择
-      for (const manner of keywords['怎么样地']) {
+      for (const manner of keywords['how']) {
         if (e.msg.includes(manner)) {
           how = manner
           logger.info(`[故事式语句] 找到"怎么样地"关键词: ${manner}`)
@@ -277,12 +393,12 @@ export class Story extends plugin {
         }
       }
       if (!how) {
-        how = keywords['怎么样地'][Math.floor(Math.random() * keywords['怎么样地'].length)]
+        how = keywords['how'][Math.floor(Math.random() * keywords['how'].length)]
         logger.info(`[故事式语句] 随机选择"怎么样地"关键词: ${how}`)
       }
       
       // 查找"干什么"，如果没找到就随机选择
-      for (const action of keywords['干什么']) {
+      for (const action of keywords['what']) {
         if (e.msg.includes(action)) {
           what = action
           logger.info(`[故事式语句] 找到"干什么"关键词: ${action}`)
@@ -290,7 +406,7 @@ export class Story extends plugin {
         }
       }
       if (!what) {
-        what = keywords['干什么'][Math.floor(Math.random() * keywords['干什么'].length)]
+        what = keywords['what'][Math.floor(Math.random() * keywords['what'].length)]
         logger.info(`[故事式语句] 随机选择"干什么"关键词: ${what}`)
       }
       
@@ -306,7 +422,7 @@ export class Story extends plugin {
       logger.info(`[故事式语句] 触发成功，生成句子: ${sentence}`)
       
       // 发送句子
-      await this.reply(`【触发随机故事！】${sentence}`)
+      await this.reply(`【触发】${sentence}`)
     } catch (error) {
       logger.error(`[故事式语句] 触发器错误：${error}`)
     }
@@ -316,16 +432,16 @@ export class Story extends plugin {
   async testStory(e) {
     try {
       // 随机选择一个"谁"关键词
-      const who = keywords['谁'][Math.floor(Math.random() * keywords['谁'].length)]
+      const who = keywords['who'][Math.floor(Math.random() * keywords['who'].length)]
       
       // 随机选择一个"在哪"关键词
-      const where = keywords['在哪'][Math.floor(Math.random() * keywords['在哪'].length)]
+      const where = keywords['where'][Math.floor(Math.random() * keywords['where'].length)]
       
       // 随机选择一个"怎么样地"关键词
-      const how = keywords['怎么样地'][Math.floor(Math.random() * keywords['怎么样地'].length)]
+      const how = keywords['how'][Math.floor(Math.random() * keywords['how'].length)]
       
       // 随机选择一个"干什么"关键词
-      const what = keywords['干什么'][Math.floor(Math.random() * keywords['干什么'].length)]
+      const what = keywords['what'][Math.floor(Math.random() * keywords['what'].length)]
       
       // 构建句子
       const sentence = `${who}在${where}${how}${what}。`
@@ -351,7 +467,7 @@ export class Story extends plugin {
       
       // 查找触发的"谁"关键词
       let who = null
-      for (const person of keywords['谁']) {
+      for (const person of keywords['who']) {
         if (content.includes(person)) {
           who = person
           logger.info(`[故事式语句] 找到"谁"关键词: ${person}`)
@@ -361,7 +477,7 @@ export class Story extends plugin {
       
       // 如果没有找到"谁"，随机选择一个
       if (!who) {
-        who = keywords['谁'][Math.floor(Math.random() * keywords['谁'].length)]
+        who = keywords['who'][Math.floor(Math.random() * keywords['who'].length)]
         logger.info(`[故事式语句] 未找到"谁"关键词，随机选择: ${who}`)
       }
       
@@ -371,7 +487,7 @@ export class Story extends plugin {
       let what = null
       
       // 查找"在哪"
-      for (const place of keywords['在哪']) {
+      for (const place of keywords['where']) {
         if (content.includes(place)) {
           where = place
           logger.info(`[故事式语句] 找到"在哪"关键词: ${place}`)
@@ -380,7 +496,7 @@ export class Story extends plugin {
       }
       
       // 查找"怎么样地"
-      for (const manner of keywords['怎么样地']) {
+      for (const manner of keywords['how']) {
         if (content.includes(manner)) {
           how = manner
           logger.info(`[故事式语句] 找到"怎么样地"关键词: ${manner}`)
@@ -389,7 +505,7 @@ export class Story extends plugin {
       }
       
       // 查找"干什么"
-      for (const action of keywords['干什么']) {
+      for (const action of keywords['what']) {
         if (content.includes(action)) {
           what = action
           logger.info(`[故事式语句] 找到"干什么"关键词: ${action}`)
@@ -399,9 +515,9 @@ export class Story extends plugin {
       
       // 如果没有找到任何其他关键词，随机选择
       if (!where && !how && !what) {
-        where = keywords['在哪'][Math.floor(Math.random() * keywords['在哪'].length)]
-        how = keywords['怎么样地'][Math.floor(Math.random() * keywords['怎么样地'].length)]
-        what = keywords['干什么'][Math.floor(Math.random() * keywords['干什么'].length)]
+        where = keywords['where'][Math.floor(Math.random() * keywords['where'].length)]
+        how = keywords['how'][Math.floor(Math.random() * keywords['how'].length)]
+        what = keywords['what'][Math.floor(Math.random() * keywords['what'].length)]
         logger.info(`[故事式语句] 未找到其他关键词，随机选择补充`)
       }
       
