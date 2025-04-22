@@ -306,7 +306,7 @@ export class Story extends plugin {
     }
     
     // 添加使用说明
-    forwardMsgs.push('\n📝 添加: 添加 分类 关键词')
+    forwardMsgs.push('📝 添加: 添加 分类 关键词')
     forwardMsgs.push('📝 删除: 删除 分类 关键词')
     forwardMsgs.push('📝 测试: 故事测试')
     forwardMsgs.push('📝 帮助: 故事帮助')
