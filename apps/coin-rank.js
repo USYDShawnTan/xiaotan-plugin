@@ -92,46 +92,62 @@ export class CoinRanking extends plugin {
         if (e.group && typeof e.group.getMemberList === 'function') {
           const memberList = await e.group.getMemberList()
           if (memberList && memberList.length > 0) {
-            // 转换为Map结构
-            memberMap = new Map()
-            for (const member of memberList) {
-              memberMap.set(member.user_id, member)
-            }
-            logger.info(`[金币排行榜] getMemberList 方法成功获取 ${memberList.length} 个群成员`)
+            // 打印原始成员列表的前两个成员，帮助调试
+            logger.info(`[金币排行榜] 原始memberList结构: ${JSON.stringify(memberList.slice(0, 2))}`)
             
-            // 检查转换后的Map是否为空
-            if (memberMap.size === 0) {
-              logger.warn(`[金币排行榜] 警告: 成员列表转换为Map后大小为0，可能缺少user_id字段`)
+            // 检查memberList是否是数组
+            if (Array.isArray(memberList)) {
+              // 尝试提取成员ID
+              const isNumericArray = memberList.every(item => typeof item === 'number')
               
-              // 打印第一个成员的结构，帮助调试
-              if (memberList.length > 0) {
-                logger.info(`[金币排行榜] 第一个成员对象结构: ${JSON.stringify(memberList[0])}`)
-                
-                // 尝试使用其他可能的ID字段名
-                const possibleIdFields = ['uin', 'qq', 'uid', 'id'];
-                for (const field of possibleIdFields) {
-                  if (memberList[0][field]) {
-                    logger.info(`[金币排行榜] 找到可能的ID字段: ${field}`)
-                    // 使用这个字段重新转换
-                    memberMap = new Object() // 使用对象而非Map
-                    for (const member of memberList) {
-                      memberMap[member[field]] = member
-                    }
-                    logger.info(`[金币排行榜] 使用字段 ${field} 重新转换后的成员数: ${Object.keys(memberMap).length}`)
-                    return { success: true, data: memberMap }
+              if (isNumericArray) {
+                // 如果memberList只是QQ号数组，直接构建对象
+                logger.info(`[金币排行榜] memberList是QQ号数组`)
+                const memberObj = {}
+                for (const qqNum of memberList) {
+                  memberObj[qqNum] = {
+                    user_id: qqNum,
+                    qq: qqNum,
+                    nickname: `用户${qqNum}`
                   }
                 }
+                logger.info(`[金币排行榜] 从QQ号数组构建的成员对象大小: ${Object.keys(memberObj).length}`)
+                return { success: true, data: memberObj }
+              } else {
+                // 检查成员对象的结构
+                const firstMember = memberList[0]
+                logger.info(`[金币排行榜] 第一个成员结构: ${JSON.stringify(firstMember)}`)
+                
+                // 尝试确定ID字段
+                let idField = null
+                const possibleIdFields = ['user_id', 'uin', 'qq', 'uid', 'id', 'userId', 'member_id'];
+                for (const field of possibleIdFields) {
+                  if (firstMember && firstMember[field] !== undefined) {
+                    idField = field
+                    logger.info(`[金币排行榜] 找到ID字段: ${field}`)
+                    break
+                  }
+                }
+                
+                if (idField) {
+                  // 将成员列表转换为对象
+                  const memberObj = {}
+                  for (const member of memberList) {
+                    if (member && member[idField] !== undefined) {
+                      memberObj[member[idField]] = member
+                    }
+                  }
+                  logger.info(`[金币排行榜] 使用字段 ${idField} 转换后的成员对象大小: ${Object.keys(memberObj).length}`)
+                  return { success: true, data: memberObj }
+                } else {
+                  // 如果无法确定ID字段，将整个数组作为成员列表
+                  logger.warn(`[金币排行榜] 无法确定ID字段，将使用整个数组`)
+                  return { success: true, data: memberList }
+                }
               }
-              
-              errors.push('成员列表转换为Map后为空，可能缺少user_id字段')
             } else {
-              // 将Map转换为普通对象，确保能正确遍历
-              const memberObj = {}
-              memberMap.forEach((value, key) => {
-                memberObj[key] = value
-              })
-              logger.info(`[金币排行榜] 成员Map转换为对象，大小: ${Object.keys(memberObj).length}`)
-              return { success: true, data: memberObj }
+              logger.warn(`[金币排行榜] memberList不是数组类型: ${typeof memberList}`)
+              errors.push('getMemberList 返回值不是数组')
             }
           } else {
             errors.push('getMemberList 返回空结果')
@@ -245,9 +261,10 @@ export class CoinRanking extends plugin {
           try {
             const coins = await Tools.getCoins(userId)
             if (coins > 0) {
+              const nickname = typeof member === 'object' ? (member.card || member.nickname || `用户${userId}`) : `用户${userId}`
               userCoins.push({
                 userId,
-                nickname: member.card || member.nickname,
+                nickname,
                 avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
                 coins
               })
@@ -258,11 +275,27 @@ export class CoinRanking extends plugin {
         }
       } else if (mapType === 'Array') {
         // 如果是数组类型
-        for (const member of memberMap) {
+        for (const item of memberMap) {
           try {
-            const userId = member.user_id || member.uin || member.qq || member.uid || member.id
+            // 如果数组元素就是数字（QQ号）
+            if (typeof item === 'number') {
+              const userId = item
+              const coins = await Tools.getCoins(userId)
+              if (coins > 0) {
+                userCoins.push({
+                  userId,
+                  nickname: `用户${userId}`,
+                  avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
+                  coins
+                })
+              }
+              continue
+            }
+            
+            // 如果是对象，尝试获取ID
+            const userId = item?.user_id || item?.uin || item?.qq || item?.uid || item?.id
             if (!userId) {
-              logger.warn(`[金币排行榜] 成员对象缺少ID字段: ${JSON.stringify(member)}`)
+              logger.warn(`[金币排行榜] 成员对象缺少ID字段: ${JSON.stringify(item)}`)
               continue
             }
             
@@ -270,7 +303,7 @@ export class CoinRanking extends plugin {
             if (coins > 0) {
               userCoins.push({
                 userId,
-                nickname: member.card || member.nickname,
+                nickname: item.card || item.nickname || `用户${userId}`,
                 avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
                 coins
               })
@@ -281,24 +314,60 @@ export class CoinRanking extends plugin {
         }
       } else {
         // 如果是普通对象
-        for (const [userId, member] of Object.entries(memberMap)) {
+        for (const [key, value] of Object.entries(memberMap)) {
           try {
-            // 打印第一个成员信息以便调试
+            // 显示前两个键值对，帮助调试
             if (userCoins.length === 0) {
-              logger.info(`[金币排行榜] 第一个成员信息: userId=${userId}, member=${JSON.stringify(member)}`)
+              logger.info(`[金币排行榜] 对象键值对示例: key=${key}, value类型=${typeof value}, value=${JSON.stringify(value).substring(0, 100)}`)
+            }
+            
+            // 如果值是一个数字（可能是QQ号）
+            if (typeof value === 'number') {
+              const userId = value
+              const coins = await Tools.getCoins(userId)
+              if (coins > 0) {
+                userCoins.push({
+                  userId,
+                  nickname: `用户${userId}`,
+                  avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
+                  coins
+                })
+              }
+              continue
+            }
+            
+            // 确定用户ID
+            let userId
+            if (!isNaN(key)) {
+              // 如果键是数字字符串，可能是QQ号
+              userId = key
+            } else if (value && typeof value === 'object') {
+              // 如果值是对象，尝试从中提取ID
+              userId = value.user_id || value.uin || value.qq || value.uid || value.id
+            } else {
+              // 如果都不是，跳过
+              logger.warn(`[金币排行榜] 无法确定用户ID: key=${key}, value=${value}`)
+              continue
             }
             
             const coins = await Tools.getCoins(userId)
             if (coins > 0) {
+              let nickname
+              if (value && typeof value === 'object') {
+                nickname = value.card || value.nickname || `用户${userId}`
+              } else {
+                nickname = `用户${userId}`
+              }
+              
               userCoins.push({
                 userId,
-                nickname: member.card || member.nickname,
+                nickname,
                 avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
                 coins
               })
             }
           } catch (err) {
-            logger.warn(`[金币排行榜] 获取用户 ${userId} 的金币失败: ${err.message || err}`)
+            logger.warn(`[金币排行榜] 获取用户金币失败: ${err.message || err}`)
           }
         }
       }
@@ -308,7 +377,7 @@ export class CoinRanking extends plugin {
       
       // 如果没有收集到任何金币数据，但有成员
       if (userCoins.length === 0 && totalMembers > 0) {
-        logger.warn(`[金币排行榜] 警告: 有 ${totalMembers} 名成员但没有收集到任何金币数据`)
+        logger.warn(`[金币排行榜] 警告: 有 ${totalMembers} 名成员但没有收集到任何金币数据，可能是未找到金币数据或格式问题`)
       }
       
       // 按金币数量排序（降序）
