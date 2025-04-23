@@ -40,17 +40,17 @@ export class CoinRanking extends plugin {
   // 生成金币排行榜
   async coinRanking(e) {
     // 1. 获取群成员列表
-    let memberMap = await this.getGroupMembersInfo(e)
-    if (!memberMap || Object.keys(memberMap).length === 0) {
-      await e.reply('获取群成员信息失败，请稍后再试', true)
-      return true
+    let result = await this.getGroupMembersInfo(e)
+    if (result.success) {
+      // 2. 收集所有成员的金币数据
+      let rankings = await this.collectMembersCoins(result.data)
+      
+      // 3. 渲染排行榜
+      await this.renderRankingImage(e, rankings)
+    } else {
+      // 获取失败，返回具体错误信息
+      await e.reply(`获取群成员信息失败: ${result.error}\n请稍后再试或联系管理员`, true)
     }
-    
-    // 2. 收集所有成员的金币数据
-    let rankings = await this.collectMembersCoins(memberMap)
-    
-    // 3. 渲染排行榜
-    await this.renderRankingImage(e, rankings)
     
     return true
   }
@@ -60,22 +60,35 @@ export class CoinRanking extends plugin {
     try {
       // 获取群号
       const groupId = e.group_id
+      logger.info(`[金币排行榜] 开始获取群 ${groupId} 的成员信息`)
       
       // 尝试使用不同的方法获取群成员信息
       let memberMap
+      let errors = []
       
       // 方法1: 使用 getMemberMap
       try {
-        memberMap = await e.group.getMemberMap()
-        if (memberMap && Object.keys(memberMap).length > 0) {
-          return memberMap
+        logger.info(`[金币排行榜] 尝试使用 getMemberMap 方法获取群成员`)
+        if (e.group && typeof e.group.getMemberMap === 'function') {
+          memberMap = await e.group.getMemberMap()
+          if (memberMap && Object.keys(memberMap).length > 0) {
+            logger.info(`[金币排行榜] getMemberMap 方法成功获取 ${Object.keys(memberMap).length} 个群成员`)
+            return { success: true, data: memberMap }
+          } else {
+            errors.push('getMemberMap 返回空结果')
+          }
+        } else {
+          errors.push('e.group.getMemberMap 方法不存在')
         }
       } catch (err) {
-        logger.warn(`[金币排行榜] getMemberMap方法获取群成员失败: ${err}`)
+        let errMsg = `getMemberMap方法获取群成员失败: ${err.message || err}`
+        logger.warn(`[金币排行榜] ${errMsg}`)
+        errors.push(errMsg)
       }
       
       // 方法2: 使用 group.getMemberList
       try {
+        logger.info(`[金币排行榜] 尝试使用 getMemberList 方法获取群成员`)
         if (e.group && typeof e.group.getMemberList === 'function') {
           const memberList = await e.group.getMemberList()
           if (memberList && memberList.length > 0) {
@@ -84,31 +97,57 @@ export class CoinRanking extends plugin {
             for (const member of memberList) {
               memberMap.set(member.user_id, member)
             }
-            return memberMap
+            logger.info(`[金币排行榜] getMemberList 方法成功获取 ${memberList.length} 个群成员`)
+            return { success: true, data: memberMap }
+          } else {
+            errors.push('getMemberList 返回空结果')
           }
+        } else {
+          errors.push('e.group.getMemberList 方法不存在')
         }
       } catch (err) {
-        logger.warn(`[金币排行榜] getMemberList方法获取群成员失败: ${err}`)
+        let errMsg = `getMemberList方法获取群成员失败: ${err.message || err}`
+        logger.warn(`[金币排行榜] ${errMsg}`)
+        errors.push(errMsg)
       }
       
       // 方法3: 尝试使用client.pickGroup获取群对象，然后获取成员列表
       try {
+        logger.info(`[金币排行榜] 尝试使用 pickGroup 方法获取群成员`)
         if (e.bot || e.client) {
           const client = e.bot || e.client
-          const group = client.pickGroup(groupId)
-          if (group) {
-            memberMap = await group.getMemberMap()
-            if (memberMap && Object.keys(memberMap).length > 0) {
-              return memberMap
+          if (client && typeof client.pickGroup === 'function') {
+            const group = client.pickGroup(groupId)
+            if (group) {
+              if (typeof group.getMemberMap === 'function') {
+                memberMap = await group.getMemberMap()
+                if (memberMap && Object.keys(memberMap).length > 0) {
+                  logger.info(`[金币排行榜] pickGroup+getMemberMap 方法成功获取 ${Object.keys(memberMap).length} 个群成员`)
+                  return { success: true, data: memberMap }
+                } else {
+                  errors.push('pickGroup.getMemberMap 返回空结果')
+                }
+              } else {
+                errors.push('pickGroup.getMemberMap 方法不存在')
+              }
+            } else {
+              errors.push('pickGroup 返回空群对象')
             }
+          } else {
+            errors.push('client.pickGroup 方法不存在')
           }
+        } else {
+          errors.push('e.bot 或 e.client 对象不存在')
         }
       } catch (err) {
-        logger.warn(`[金币排行榜] 通过pickGroup获取群成员失败: ${err}`)
+        let errMsg = `通过pickGroup获取群成员失败: ${err.message || err}`
+        logger.warn(`[金币排行榜] ${errMsg}`)
+        errors.push(errMsg)
       }
       
       // 方法4: 尝试使用Bot.getGroupMemberList方法
       try {
+        logger.info(`[金币排行榜] 尝试使用 Bot.getGroupMemberList 方法获取群成员`)
         if (global.Bot && typeof global.Bot.getGroupMemberList === 'function') {
           const memberList = await global.Bot.getGroupMemberList(groupId)
           if (memberList && memberList.length > 0) {
@@ -117,19 +156,28 @@ export class CoinRanking extends plugin {
             for (const member of memberList) {
               memberMap.set(member.user_id, member)
             }
-            return memberMap
+            logger.info(`[金币排行榜] Bot.getGroupMemberList 方法成功获取 ${memberList.length} 个群成员`)
+            return { success: true, data: memberMap }
+          } else {
+            errors.push('Bot.getGroupMemberList 返回空结果')
           }
+        } else {
+          errors.push('global.Bot.getGroupMemberList 方法不存在')
         }
       } catch (err) {
-        logger.warn(`[金币排行榜] 通过Bot.getGroupMemberList获取群成员失败: ${err}`)
+        let errMsg = `通过Bot.getGroupMemberList获取群成员失败: ${err.message || err}`
+        logger.warn(`[金币排行榜] ${errMsg}`)
+        errors.push(errMsg)
       }
       
-      // 所有方法都失败，返回空对象
-      logger.error(`[金币排行榜] 所有方法获取群成员都失败`)
-      return {}
+      // 所有方法都失败，返回错误信息
+      let errorMessage = `获取群成员失败，已尝试所有方法。详细错误: ${errors.join('; ')}`
+      logger.error(`[金币排行榜] ${errorMessage}`)
+      return { success: false, error: errorMessage }
     } catch (err) {
-      logger.error(`[金币排行榜] 获取群成员失败: ${err}`)
-      return {}
+      let errorMessage = `获取群成员总体失败: ${err.message || err}`
+      logger.error(`[金币排行榜] ${errorMessage}`)
+      return { success: false, error: errorMessage }
     }
   }
   
@@ -139,21 +187,32 @@ export class CoinRanking extends plugin {
       // 创建一个包含用户信息和金币的数组
       let userCoins = []
       
+      // 记录成员总数
+      const totalMembers = Object.keys(memberMap).length
+      logger.info(`[金币排行榜] 开始收集 ${totalMembers} 名成员的金币数据`)
+      
       // 遍历成员获取金币
       for (const [userId, member] of Object.entries(memberMap)) {
-        // 获取金币
-        const coins = await Tools.getCoins(userId)
-        
-        // 如果有金币，添加到列表
-        if (coins > 0) {
-          userCoins.push({
-            userId,
-            nickname: member.card || member.nickname,
-            avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
-            coins
-          })
+        try {
+          // 获取金币
+          const coins = await Tools.getCoins(userId)
+          
+          // 如果有金币，添加到列表
+          if (coins > 0) {
+            userCoins.push({
+              userId,
+              nickname: member.card || member.nickname,
+              avatar: `https://q1.qlogo.cn/g?b=qq&nk=${userId}&s=100`,
+              coins
+            })
+          }
+        } catch (err) {
+          logger.warn(`[金币排行榜] 获取用户 ${userId} 的金币失败: ${err.message || err}`)
         }
       }
+      
+      // 记录有金币的成员数
+      logger.info(`[金币排行榜] 成功收集到 ${userCoins.length}/${totalMembers} 名成员的金币数据`)
       
       // 按金币数量排序（降序）
       userCoins.sort((a, b) => b.coins - a.coins)
@@ -161,7 +220,7 @@ export class CoinRanking extends plugin {
       // 限制数量为前20名
       return userCoins.slice(0, 20)
     } catch (err) {
-      logger.error(`[金币排行榜] 收集成员金币数据失败: ${err}`)
+      logger.error(`[金币排行榜] 收集成员金币数据失败: ${err.message || err}`)
       return []
     }
   }
@@ -174,6 +233,8 @@ export class CoinRanking extends plugin {
         await e.reply('暂无金币排行数据', true)
         return
       }
+      
+      logger.info(`[金币排行榜] 开始渲染排行榜，共有 ${rankings.length} 名成员`)
       
       // 添加发送者的排名信息
       const userRank = this.getUserRank(e.user_id, rankings)
@@ -198,9 +259,12 @@ export class CoinRanking extends plugin {
         e,
         scale: 1.2 // 图片缩放比例
       })
+      
+      logger.info(`[金币排行榜] 排行榜渲染完成并已发送`)
     } catch (err) {
-      logger.error(`[金币排行榜] 渲染排行榜失败: ${err}`)
-      await e.reply('生成排行榜失败，请稍后再试', true)
+      let errorMsg = `渲染排行榜失败: ${err.message || err}`
+      logger.error(`[金币排行榜] ${errorMsg}`)
+      await e.reply(`生成排行榜失败: ${errorMsg}\n请稍后再试`, true)
     }
   }
   
