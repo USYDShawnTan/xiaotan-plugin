@@ -40,7 +40,7 @@ export class CoinRanking extends plugin {
   // 生成金币排行榜
   async coinRanking(e) {
     // 1. 获取群成员列表
-    let memberMap = await this.getGroupMemberList(e)
+    let memberMap = await this.getGroupMembersInfo(e)
     if (!memberMap || Object.keys(memberMap).length === 0) {
       await e.reply('获取群成员信息失败，请稍后再试', true)
       return true
@@ -61,15 +61,72 @@ export class CoinRanking extends plugin {
       // 获取群号
       const groupId = e.group_id
       
-      // 使用Bot API获取群成员列表
-      // 注：具体实现可能因Bot框架而异，下面是示例
-      const memberList = await e.group.getMemberMap()
+      // 尝试使用不同的方法获取群成员信息
+      let memberMap
       
-      // 如果无法直接获取，可以使用替代方案
-      // 比如：仅获取最近发言成员的信息
+      // 方法1: 使用 getMemberMap
+      try {
+        memberMap = await e.group.getMemberMap()
+        if (memberMap && Object.keys(memberMap).length > 0) {
+          return memberMap
+        }
+      } catch (err) {
+        logger.warn(`[金币排行榜] getMemberMap方法获取群成员失败: ${err}`)
+      }
       
-      // 返回成员信息Map (userId => memberInfo)
-      return memberList
+      // 方法2: 使用 group.getMemberList
+      try {
+        if (e.group && typeof e.group.getMemberList === 'function') {
+          const memberList = await e.group.getMemberList()
+          if (memberList && memberList.length > 0) {
+            // 转换为Map结构
+            memberMap = new Map()
+            for (const member of memberList) {
+              memberMap.set(member.user_id, member)
+            }
+            return memberMap
+          }
+        }
+      } catch (err) {
+        logger.warn(`[金币排行榜] getMemberList方法获取群成员失败: ${err}`)
+      }
+      
+      // 方法3: 尝试使用client.pickGroup获取群对象，然后获取成员列表
+      try {
+        if (e.bot || e.client) {
+          const client = e.bot || e.client
+          const group = client.pickGroup(groupId)
+          if (group) {
+            memberMap = await group.getMemberMap()
+            if (memberMap && Object.keys(memberMap).length > 0) {
+              return memberMap
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn(`[金币排行榜] 通过pickGroup获取群成员失败: ${err}`)
+      }
+      
+      // 方法4: 尝试使用Bot.getGroupMemberList方法
+      try {
+        if (global.Bot && typeof global.Bot.getGroupMemberList === 'function') {
+          const memberList = await global.Bot.getGroupMemberList(groupId)
+          if (memberList && memberList.length > 0) {
+            // 转换为Map结构
+            memberMap = new Map()
+            for (const member of memberList) {
+              memberMap.set(member.user_id, member)
+            }
+            return memberMap
+          }
+        }
+      } catch (err) {
+        logger.warn(`[金币排行榜] 通过Bot.getGroupMemberList获取群成员失败: ${err}`)
+      }
+      
+      // 所有方法都失败，返回空对象
+      logger.error(`[金币排行榜] 所有方法获取群成员都失败`)
+      return {}
     } catch (err) {
       logger.error(`[金币排行榜] 获取群成员失败: ${err}`)
       return {}
