@@ -163,7 +163,7 @@
     <div class="ranking-list">
       {{#each rankings}}
       <div class="ranking-item">
-        <div class="rank {{#if (eq @index 0)}}rank-1{{/if}}{{#if (eq @index 1)}}rank-2{{/if}}{{#if (eq @index 2)}}rank-3{{/if}}">
+        <div class="rank {{#if @first}}rank-1{{else}}{{#if (eq @index 1)}}rank-2{{else}}{{#if (eq @index 2)}}rank-3{{/if}}{{/if}}{{/if}}">
           {{add @index 1}}
         </div>
         <img class="avatar" src="{{avatar}}" alt="avatar">
@@ -192,12 +192,12 @@
   
   <!-- Handlebars 助手函数 -->
   <script>
-    Handlebars.registerHelper('eq', function(a, b) {
-      return a === b;
-    });
-    
     Handlebars.registerHelper('add', function(a, b) {
       return a + b;
+    });
+    
+    Handlebars.registerHelper('eq', function(a, b) {
+      return a === b;
     });
   </script>
 </body>

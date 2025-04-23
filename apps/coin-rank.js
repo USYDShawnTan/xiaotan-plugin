@@ -408,6 +408,11 @@ export class CoinRanking extends plugin {
       // 准备渲染数据
       const renderData = {
         rankings,
+        // 添加排名数据，用于样式渲染
+        ranks: {
+          1: 2, // 下标1是第2名
+          2: 3  // 下标2是第3名
+        },
         user: {
           userId: e.user_id,
           nickname: e.sender.card || e.sender.nickname,
