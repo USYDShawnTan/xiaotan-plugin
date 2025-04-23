@@ -40,7 +40,7 @@ export class CoinRanking extends plugin {
   // 生成金币排行榜
   async coinRanking(e) {
     // 1. 获取群成员列表
-    let memberMap = await this.getGroupMembersInfo(e)
+    let memberMap = await this.getGroupMemberList(e)
     if (!memberMap || Object.keys(memberMap).length === 0) {
       await e.reply('获取群成员信息失败，请稍后再试', true)
       return true
