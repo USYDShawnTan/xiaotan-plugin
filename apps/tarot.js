@@ -1,7 +1,6 @@
 import lodash from "lodash";
 import plugin from "../../../lib/plugins/plugin.js";
 import cards from "../resources/tarots/tarot.js";
-import common from "../../../lib/common/common.js";
 import { Plugin_Path } from "../components/index.js";
 
 const tarotsPath = `${Plugin_Path}/resources/tarots/`;
