@@ -383,6 +383,24 @@ export class CoinRanking extends plugin {
       // 按金币数量排序（降序）
       userCoins.sort((a, b) => b.coins - a.coins)
       
+      // 添加排名信息
+      userCoins = userCoins.map((item, index) => {
+        // 排名顺序从1开始
+        const rankNumber = index + 1
+        
+        // 根据排名添加排名类
+        let rankClass = ''
+        if (rankNumber === 1) rankClass = 'rank-1'
+        else if (rankNumber === 2) rankClass = 'rank-2'
+        else if (rankNumber === 3) rankClass = 'rank-3'
+        
+        return {
+          ...item,
+          rank: rankNumber,
+          rankClass
+        }
+      })
+      
       // 限制数量为前20名
       return userCoins.slice(0, 20)
     } catch (err) {
@@ -447,7 +465,7 @@ export class CoinRanking extends plugin {
     if (index !== -1) {
       // 用户在排行榜中
       return {
-        rank: index + 1,
+        rank: rankings[index].rank || (index + 1),
         coins: rankings[index].coins
       }
     } else {
