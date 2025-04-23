@@ -104,6 +104,7 @@
   .nickname {
     font-size: 16px;
     margin-bottom: 3px;
+    font-weight: bold;
   }
   
   .user-id {
@@ -123,8 +124,25 @@
     border-radius: 10px;
     background: #3498db;
     color: #fff;
+    position: relative;
+  }
+
+  .user-rank-title {
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: #2980b9;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  .user-rank-content {
     display: flex;
     align-items: center;
+    margin-top: 5px;
   }
   
   .user-rank .avatar {
@@ -168,20 +186,23 @@
       <img class="avatar" src="{{item.avatar}}" alt="avatar">
       <div class="user-info">
         <div class="nickname">{{item.nickname}}</div>
-        <div class="user-id">{{item.userId}}</div>
+        <div class="user-id">共有金币 {{item.coins}} 枚</div>
       </div>
-      <div class="coins">{{item.coins}} 金币</div>
+      <div class="coins">{{item.coins}} 💰</div>
     </div>
     {{/each}}
   </div>
   
   <div class="user-rank">
-    <img class="avatar" src="{{user.avatar}}" alt="avatar">
-    <div class="user-info">
-      <div class="nickname">{{user.nickname}}</div>
-      <div class="user-id">{{user.userId}}</div>
+    <div class="user-rank-title">您的排名: {{user.rank}}</div>
+    <div class="user-rank-content">
+      <img class="avatar" src="{{user.avatar}}" alt="avatar">
+      <div class="user-info">
+        <div class="nickname">{{user.nickname}}</div>
+        <div class="user-id">{{user.coins}} 枚金币</div>
+      </div>
+      <div class="coins">{{user.coins}} 💰</div>
     </div>
-    <div class="coins">排名: {{user.rank}} · {{user.coins}} 金币</div>
   </div>
   
   <div class="footer">
