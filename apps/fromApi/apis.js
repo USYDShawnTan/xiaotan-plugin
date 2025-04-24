@@ -220,6 +220,34 @@ export class api extends plugin {
     return true;
   }
 
+  // 获取emoji的主要Unicode码点（十六进制形式）
+  getMainEmojiUnicode(emoji) {
+    try {
+      // 获取第一个字符的码点
+      const codePoint = emoji.codePointAt(0);
+      if (!codePoint) return null;
+      
+      // 转换为十六进制并去掉前导的0x
+      return codePoint.toString(16);
+    } catch (e) {
+      console.error("Error getting main emoji unicode:", e);
+      return null;
+    }
+  }
+  
+  // 获取Google Noto Emoji SVG URL
+  getEmojiSvgUrl(emoji) {
+    try {
+      const mainUnicode = this.getMainEmojiUnicode(emoji);
+      if (!mainUnicode) return null;
+      
+      return `https://fonts.gstatic.com/s/e/notoemoji/latest/${mainUnicode}/emoji.svg`;
+    } catch (e) {
+      console.error("Error getting emoji SVG URL:", e);
+      return null;
+    }
+  }
+  
   // 公共函数处理emoji请求
   async processEmojiRequest(e, requiredCount, makeUrl, errorMessage) {
     // 更全面的emoji正则表达式，包括变体选择符和零宽连接符
@@ -241,10 +269,28 @@ export class api extends plugin {
         let msg = segment.image(finalUrl);
         await e.reply(msg);
       } else {
+        // 如果是单个emoji且动态版本不可用，尝试使用静态SVG
+        if (requiredCount === 1) {
+          const staticSvgUrl = this.getEmojiSvgUrl(emojis[0]);
+          if (staticSvgUrl) {
+            let msg = segment.image(staticSvgUrl);
+            await e.reply(msg);
+            return true;
+          }
+        }
         await e.reply(errorMessage);
       }
     } catch (error) {
       console.error("请求出错", error);
+      // 如果是单个emoji且请求出错，尝试使用静态SVG
+      if (requiredCount === 1) {
+        const staticSvgUrl = this.getEmojiSvgUrl(emojis[0]);
+        if (staticSvgUrl) {
+          let msg = segment.image(staticSvgUrl);
+          await e.reply(msg);
+          return true;
+        }
+      }
       await e.reply("请求出错，请稍后再试。");
     }
     
