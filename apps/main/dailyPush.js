@@ -64,10 +64,10 @@ export class DailyPush extends plugin {
     // 每日早安 (8:00)
     schedule.scheduleJob("0 0 8 * * *", () => this.morningNews());
 
-    // 澳币汇率 (10:00)
-    schedule.scheduleJob("0 0 10 * * *", () => this.audExchangeRate());
+    // 澳币汇率 （每小时）
+    schedule.scheduleJob("0 0 */1 * * *", () => this.audExchangeRate());
 
-    // 知乎热搜 (每两小时)
+    // 知乎热搜 (每六小时)
     schedule.scheduleJob("0 0 */6 * * ?", () => this.zhihuHotSearch());
 
     // 晚间提醒 (24:00)
@@ -123,7 +123,7 @@ export class DailyPush extends plugin {
 
       if (data?.conversion_rates?.CNY?.rate) {
         const rate = data.conversion_rates.CNY.rate;
-        const message = `🇦🇺 澳币汇率: ${rate} CNY`;
+        const message = `💰澳币汇率: ${rate} CNY`;
         await PushManager.sendGroupMsg("AUD", message);
       } else {
         logger.error("[DailyPush] 获取汇率数据失败");
