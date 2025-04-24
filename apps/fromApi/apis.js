@@ -29,11 +29,11 @@ export class api extends plugin {
           fnc: "crazythursday",
         },
         {
-          reg: /(?:(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F){2})$/u,
+          reg: /(?:(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]){2}$/,
           fnc: "emojimix",
         },
         {
-          reg: /(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u,
+          reg: /(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]$/,
           fnc: "dynamicEmoji",
         },
         {
@@ -102,54 +102,23 @@ export class api extends plugin {
     return true;
   }
   async dynamicEmoji(e) {
-    // 更新匹配逻辑，与正则表达式保持一致
-    let emojis = e.msg.match(/(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu);
-    if (!emojis || emojis.length !== 1) {
-      await e.reply("请输入一个 emoji 进行查询");
-      return;
-    }
-    let emoji = encodeURIComponent(emojis[0]);
-    let url = `https://api.433200.xyz/api/dynamic-emoji?emoji=${emoji}`;
-    try {
-      let res = await fetch(url);
-      if (res.ok) {
-        let data = await res.json();
-        let finalUrl = data.url;
-        let msg = segment.image(finalUrl);
-        await e.reply(msg);
-      } else {
-        await e.reply(`这个 emoji (${emojis[0]}) 没有动态版本噢~`);
-      }
-    } catch (error) {
-      console.error("请求出错", error);
-      await e.reply("请求出错，请稍后再试。");
-    }
+    return this.processEmojiRequest(
+      e, 
+      1, 
+      (emojis) => `https://api.433200.xyz/api/dynamic-emoji?emoji=${encodeURIComponent(emojis[0])}`,
+      `这个emoji没有动态版本噢~`
+    );
   }
+  
   async emojimix(e) {
-    // 更新匹配逻辑，与正则表达式保持一致
-    let emojis = e.msg.match(/(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu);
-    if (!emojis || emojis.length !== 2) {
-      await e.reply("请输入两个emoji进行合成");
-      return;
-    }
-    let firstEmoji = encodeURIComponent(emojis[0]);
-    let secondEmoji = encodeURIComponent(emojis[1]);
-    let url = `https://api.433200.xyz/api/emoji?emoji1=${firstEmoji}&emoji2=${secondEmoji}`;
-    try {
-      let res = await fetch(url);
-      if (res.ok) {
-        let data = await res.json();
-        let finalUrl = data.url;
-        let msg = segment.image(finalUrl);
-        await e.reply(msg);
-      } else {
-        await e.reply("这两个emoji不能合成噢~");
-      }
-    } catch (error) {
-      console.error("请求出错", error);
-      await e.reply("请求出错，请稍后再试。");
-    }
+    return this.processEmojiRequest(
+      e, 
+      2, 
+      (emojis) => `https://api.433200.xyz/api/emoji?emoji1=${encodeURIComponent(emojis[0])}&emoji2=${encodeURIComponent(emojis[1])}`,
+      "这两个emoji不能合成噢~"
+    );
   }
+  
   async longtu(e) {
     await Apis.longtu(e);
     return true;
@@ -248,6 +217,37 @@ export class api extends plugin {
   }
   async horror(e) {
     await Apis.horror(e);
+    return true;
+  }
+
+  // 公共函数处理emoji请求
+  async processEmojiRequest(e, requiredCount, makeUrl, errorMessage) {
+    // 更新为更简洁的emoji正则表达式
+    const emojiRegex = /(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]/g;
+    
+    let emojis = e.msg.match(emojiRegex);
+    if (!emojis || emojis.length !== requiredCount) {
+      await e.reply(requiredCount === 1 ? "请输入一个emoji进行查询" : "请输入两个emoji进行合成");
+      return false;
+    }
+    
+    const url = makeUrl(emojis);
+    
+    try {
+      let res = await fetch(url);
+      if (res.ok) {
+        let data = await res.json();
+        let finalUrl = data.url;
+        let msg = segment.image(finalUrl);
+        await e.reply(msg);
+      } else {
+        await e.reply(errorMessage);
+      }
+    } catch (error) {
+      console.error("请求出错", error);
+      await e.reply("请求出错，请稍后再试。");
+    }
+    
     return true;
   }
 }
