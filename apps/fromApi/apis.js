@@ -29,11 +29,11 @@ export class api extends plugin {
           fnc: "crazythursday",
         },
         {
-          reg: /(?:(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]){2}$/,
+          reg: /(?:[\p{Emoji}][\u200D\uFE0F]*){2}$/u,
           fnc: "emojimix",
         },
         {
-          reg: /(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]$/,
+          reg: /[\p{Emoji}][\u200D\uFE0F]*$/u,
           fnc: "dynamicEmoji",
         },
         {
@@ -222,8 +222,8 @@ export class api extends plugin {
 
   // 公共函数处理emoji请求
   async processEmojiRequest(e, requiredCount, makeUrl, errorMessage) {
-    // 更新为更简洁的emoji正则表达式
-    const emojiRegex = /(\ud83c[\udf00-\udfff])|(\ud83d[\udc00-\ude4f\ude80-\udeff])|[\u2600-\u2B55]/g;
+    // 更全面的emoji正则表达式，包括变体选择符和零宽连接符
+    const emojiRegex = /[\p{Emoji}][\u200D\uFE0F]*/gu;
     
     let emojis = e.msg.match(emojiRegex);
     if (!emojis || emojis.length !== requiredCount) {
