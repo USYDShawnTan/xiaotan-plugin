@@ -235,17 +235,66 @@ export class api extends plugin {
     }
   }
   
-  // 获取Google Noto Emoji SVG URL
-  getEmojiSvgUrl(emoji) {
+  // 获取emoji PNG图片URL（QQ支持的格式）
+  getEmojiPngUrl(emoji) {
     try {
       const mainUnicode = this.getMainEmojiUnicode(emoji);
       if (!mainUnicode) return null;
       
-      return `https://fonts.gstatic.com/s/e/notoemoji/latest/${mainUnicode}/emoji.svg`;
+      // 使用Google Noto Emoji的PNG版本
+      // Google样式emoji的PNG资源
+      if (mainUnicode.length <= 5) {
+        // 对于基本emoji，使用emojicdn的Google样式
+        return `https://emojicdn.elk.sh/${emoji}?style=google`;
+      } else {
+        // 备用方案
+        return `https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji/png/128/emoji_u${mainUnicode.toLowerCase()}.png`;
+      }
     } catch (e) {
-      console.error("Error getting emoji SVG URL:", e);
+      console.error("Error getting emoji PNG URL:", e);
       return null;
     }
+  }
+  
+  // 添加一个尝试多个URL的方法，增加成功率
+  async tryMultipleEmojiUrls(emoji) {
+    // 尝试获取动态emoji
+    try {
+      const res = await fetch(`https://api.433200.xyz/api/dynamic-emoji?emoji=${encodeURIComponent(emoji)}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+    } catch (error) {
+      console.error("动态emoji获取失败:", error);
+    }
+    
+    // 尝试emojicdn的Google样式
+    try {
+      return `https://emojicdn.elk.sh/${emoji}?style=google`;
+    } catch (error) {
+      console.error("emojicdn获取失败:", error);
+    }
+    
+    // 尝试直接使用Noto Emoji PNG
+    try {
+      const mainUnicode = this.getMainEmojiUnicode(emoji);
+      if (mainUnicode) {
+        return `https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji/png/128/emoji_u${mainUnicode.toLowerCase()}.png`;
+      }
+    } catch (error) {
+      console.error("Noto Emoji PNG获取失败:", error);
+    }
+    
+    return null;
+  }
+  
+  // 格式化Unicode码点以适应URL格式
+  formatUnicodeForUrl(unicode) {
+    // 将Unicode码点转换为URL友好格式
+    // 例如：'1f600' -> 'grinning-face'
+    // 由于我们无法直接映射所有码点，使用简单的连字符连接
+    return unicode.toLowerCase().replace(/^0*/, '');
   }
   
   // 公共函数处理emoji请求
@@ -259,39 +308,37 @@ export class api extends plugin {
       return false;
     }
     
-    const url = makeUrl(emojis);
-    
-    try {
-      let res = await fetch(url);
-      if (res.ok) {
-        let data = await res.json();
-        let finalUrl = data.url;
-        let msg = segment.image(finalUrl);
+    if (requiredCount === 1) {
+      // 单个emoji，使用优化的多URL尝试方法
+      const emojiUrl = await this.tryMultipleEmojiUrls(emojis[0]);
+      if (emojiUrl) {
+        let msg = segment.image(emojiUrl);
         await e.reply(msg);
+        return true;
       } else {
-        // 如果是单个emoji且动态版本不可用，尝试使用静态SVG
-        if (requiredCount === 1) {
-          const staticSvgUrl = this.getEmojiSvgUrl(emojis[0]);
-          if (staticSvgUrl) {
-            let msg = segment.image(staticSvgUrl);
-            await e.reply(msg);
-            return true;
-          }
-        }
-        await e.reply(errorMessage);
+        await e.reply(`这个emoji (${emojis[0]}) 没有可用版本噢~`);
+        return false;
       }
-    } catch (error) {
-      console.error("请求出错", error);
-      // 如果是单个emoji且请求出错，尝试使用静态SVG
-      if (requiredCount === 1) {
-        const staticSvgUrl = this.getEmojiSvgUrl(emojis[0]);
-        if (staticSvgUrl) {
-          let msg = segment.image(staticSvgUrl);
+    } else {
+      // emoji合成，使用原有方法
+      const url = makeUrl(emojis);
+      
+      try {
+        let res = await fetch(url);
+        if (res.ok) {
+          let data = await res.json();
+          let finalUrl = data.url;
+          let msg = segment.image(finalUrl);
           await e.reply(msg);
-          return true;
+        } else {
+          await e.reply(errorMessage);
+          return false;
         }
+      } catch (error) {
+        console.error("请求出错", error);
+        await e.reply("请求出错，请稍后再试。");
+        return false;
       }
-      await e.reply("请求出错，请稍后再试。");
     }
     
     return true;
