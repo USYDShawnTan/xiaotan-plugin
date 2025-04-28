@@ -64,8 +64,8 @@ export class DailyPush extends plugin {
     // 每日早安 (8:00)
     schedule.scheduleJob("0 0 8 * * *", () => this.morningNews());
 
-    // 澳币汇率 （每小时）
-    schedule.scheduleJob("0 0 */1 * * *", () => this.audExchangeRate());
+    // 澳币汇率 （每12小时）
+    schedule.scheduleJob("0 0 */12 * * *", () => this.audExchangeRate());
 
     // 知乎热搜 (每六小时)
     schedule.scheduleJob("0 0 */6 * * ?", () => this.zhihuHotSearch());
