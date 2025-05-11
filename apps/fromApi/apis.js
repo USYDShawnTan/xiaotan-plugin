@@ -28,13 +28,12 @@ export class api extends plugin {
           reg: ".*?(星期四|疯狂|肯德基|v我50|v我|vivo).*",
           fnc: "crazythursday",
         },
-        // 更精确的emoji检测
         {
-          reg: /(?:[\p{Emoji_Presentation}\p{Extended_Pictographic}][\u200D\uFE0F]*){2}$/u,
+          reg: /(?:(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F){2})$/u,
           fnc: "emojimix",
         },
         {
-          reg: /[\p{Emoji_Presentation}\p{Extended_Pictographic}][\u200D\uFE0F]*$/u,
+          reg: /(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u,
           fnc: "dynamicEmoji",
         },
         {
@@ -312,7 +311,7 @@ export class api extends plugin {
   async processEmojiRequest(e, requiredCount, makeUrl, errorMessage) {
     // 更全面的emoji正则表达式，包括变体选择符和零宽连接符
     const emojiRegex =
-      /[\p{Emoji_Presentation}\p{Extended_Pictographic}][\u200D\uFE0F]*){2}$/u;
+      /(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)(?:\uFE0F|\u200D(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F|\p{Extended_Pictographic})|\uFE0E)?/gu;
 
     let emojis = e.msg.match(emojiRegex);
     if (!emojis || emojis.length !== requiredCount) {
