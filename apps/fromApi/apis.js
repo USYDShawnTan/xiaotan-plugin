@@ -28,12 +28,13 @@ export class api extends plugin {
           reg: ".*?(星期四|疯狂|肯德基|v我50|v我|vivo).*",
           fnc: "crazythursday",
         },
+        // 更精确的emoji检测
         {
-          reg: /(?:[\p{Emoji}][\u200D\uFE0F]*){2}$/u,
+          reg: /(?:[\p{Emoji_Presentation}\p{Extended_Pictographic}][\u200D\uFE0F]*){2}$/u,
           fnc: "emojimix",
         },
         {
-          reg: /[\p{Emoji}][\u200D\uFE0F]*$/u,
+          reg: /[\p{Emoji_Presentation}\p{Extended_Pictographic}][\u200D\uFE0F]*$/u,
           fnc: "dynamicEmoji",
         },
         {
@@ -103,22 +104,28 @@ export class api extends plugin {
   }
   async dynamicEmoji(e) {
     return this.processEmojiRequest(
-      e, 
-      1, 
-      (emojis) => `https://api.433200.xyz/api/dynamic-emoji?emoji=${encodeURIComponent(emojis[0])}`,
+      e,
+      1,
+      (emojis) =>
+        `https://api.433200.xyz/api/dynamic-emoji?emoji=${encodeURIComponent(
+          emojis[0]
+        )}`,
       `这个emoji没有动态版本噢~`
     );
   }
-  
+
   async emojimix(e) {
     return this.processEmojiRequest(
-      e, 
-      2, 
-      (emojis) => `https://api.433200.xyz/api/emoji?emoji1=${encodeURIComponent(emojis[0])}&emoji2=${encodeURIComponent(emojis[1])}`,
+      e,
+      2,
+      (emojis) =>
+        `https://api.433200.xyz/api/emoji?emoji1=${encodeURIComponent(
+          emojis[0]
+        )}&emoji2=${encodeURIComponent(emojis[1])}`,
       "这两个emoji不能合成噢~"
     );
   }
-  
+
   async longtu(e) {
     await Apis.longtu(e);
     return true;
@@ -226,7 +233,7 @@ export class api extends plugin {
       // 获取第一个字符的码点
       const codePoint = emoji.codePointAt(0);
       if (!codePoint) return null;
-      
+
       // 转换为十六进制并去掉前导的0x
       return codePoint.toString(16);
     } catch (e) {
@@ -234,13 +241,13 @@ export class api extends plugin {
       return null;
     }
   }
-  
+
   // 获取emoji PNG图片URL（QQ支持的格式）
   getEmojiPngUrl(emoji) {
     try {
       const mainUnicode = this.getMainEmojiUnicode(emoji);
       if (!mainUnicode) return null;
-      
+
       // 使用Google Noto Emoji的PNG版本
       // Google样式emoji的PNG资源
       if (mainUnicode.length <= 5) {
@@ -255,12 +262,16 @@ export class api extends plugin {
       return null;
     }
   }
-  
+
   // 添加一个尝试多个URL的方法，增加成功率
   async tryMultipleEmojiUrls(emoji) {
     // 尝试获取动态emoji
     try {
-      const res = await fetch(`https://api.433200.xyz/api/dynamic-emoji?emoji=${encodeURIComponent(emoji)}`);
+      const res = await fetch(
+        `https://api.433200.xyz/api/dynamic-emoji?emoji=${encodeURIComponent(
+          emoji
+        )}`
+      );
       if (res.ok) {
         const data = await res.json();
         return data.url;
@@ -268,14 +279,14 @@ export class api extends plugin {
     } catch (error) {
       console.error("动态emoji获取失败:", error);
     }
-    
+
     // 尝试emojicdn的Google样式
     try {
       return `https://emojicdn.elk.sh/${emoji}?style=google`;
     } catch (error) {
       console.error("emojicdn获取失败:", error);
     }
-    
+
     // 尝试直接使用Noto Emoji PNG
     try {
       const mainUnicode = this.getMainEmojiUnicode(emoji);
@@ -285,29 +296,34 @@ export class api extends plugin {
     } catch (error) {
       console.error("Noto Emoji PNG获取失败:", error);
     }
-    
+
     return null;
   }
-  
+
   // 格式化Unicode码点以适应URL格式
   formatUnicodeForUrl(unicode) {
     // 将Unicode码点转换为URL友好格式
     // 例如：'1f600' -> 'grinning-face'
     // 由于我们无法直接映射所有码点，使用简单的连字符连接
-    return unicode.toLowerCase().replace(/^0*/, '');
+    return unicode.toLowerCase().replace(/^0*/, "");
   }
-  
+
   // 公共函数处理emoji请求
   async processEmojiRequest(e, requiredCount, makeUrl, errorMessage) {
     // 更全面的emoji正则表达式，包括变体选择符和零宽连接符
-    const emojiRegex = /[\p{Emoji}][\u200D\uFE0F]*/gu;
-    
+    const emojiRegex =
+      /[\p{Emoji_Presentation}\p{Extended_Pictographic}][\u200D\uFE0F]*){2}$/u;
+
     let emojis = e.msg.match(emojiRegex);
     if (!emojis || emojis.length !== requiredCount) {
-      await e.reply(requiredCount === 1 ? "请输入一个emoji进行查询" : "请输入两个emoji进行合成");
+      await e.reply(
+        requiredCount === 1
+          ? "请输入一个emoji进行查询"
+          : "请输入两个emoji进行合成"
+      );
       return false;
     }
-    
+
     if (requiredCount === 1) {
       // 单个emoji，使用优化的多URL尝试方法
       const emojiUrl = await this.tryMultipleEmojiUrls(emojis[0]);
@@ -322,7 +338,7 @@ export class api extends plugin {
     } else {
       // emoji合成，使用原有方法
       const url = makeUrl(emojis);
-      
+
       try {
         let res = await fetch(url);
         if (res.ok) {
@@ -340,7 +356,7 @@ export class api extends plugin {
         return false;
       }
     }
-    
+
     return true;
   }
 }
