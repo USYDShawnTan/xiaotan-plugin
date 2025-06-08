@@ -1,4 +1,6 @@
 import YAML from "yaml";
+import fs from "node:fs";
+import path from "node:path";
 const apps = {};
 global.xiaotan_plugin = {
   apps: apps,
@@ -48,8 +50,6 @@ if (!xiaotan_plugin.puppeteer) {
   }
 }
 
-import fs from "node:fs";
-import path from "node:path";
 import { Version, Plugin_Path } from "./components/index.js";
 
 function getAllJsFiles(dirPath, arrayOfFiles = []) {
